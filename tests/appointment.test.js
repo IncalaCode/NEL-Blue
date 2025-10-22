@@ -7,6 +7,18 @@ const { app } = require('../index');
 describe('Appointment Endpoints', () => {
   let authToken;
 
+  beforeAll(async () => {
+    const loginResponse = await request(app)
+      .post('/api/auth/login')
+      .send({
+        email: 'eddie.williams.swe@gmail.com',
+        password: '12345678'
+      });
+    
+    authToken = loginResponse.body.accessToken;
+    console.log('Login successful, token obtained');
+  });
+
   afterAll(async () => {
     if (mongoose.connection.readyState !== 0) {
       await mongoose.connection.close();
@@ -16,6 +28,7 @@ describe('Appointment Endpoints', () => {
   test('POST /api/appointment/addappointment - should create appointment with valid data', async () => {
     const response = await request(app)
       .post('/api/appointment/addappointment')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         serviceId: '68b370b362d20a7e8373d382',
         professionalId: '68c7ec97a3363a0d5cdabdcf',
@@ -48,6 +61,7 @@ describe('Appointment Endpoints', () => {
   test('POST /api/appointment/calculate-price - should calculate appointment cost', async () => {
     const response = await request(app)
       .post('/api/appointment/calculate-price')
+      .set('Authorization', `Bearer ${authToken}`)
       .send({
         professionalId: '68c7ec97a3363a0d5cdabdcf',
         duration: 2
@@ -60,12 +74,12 @@ describe('Appointment Endpoints', () => {
     
     if (response.status === 200) {
       expect(response.body).toHaveProperty('success');
-      expect(response.body).toHaveProperty('pricing');
-      expect(response.body.pricing).toHaveProperty('basePrice');
-      expect(response.body.pricing).toHaveProperty('platformFee');
-      expect(response.body.pricing).toHaveProperty('taxAmount');
-      expect(response.body.pricing).toHaveProperty('totalPrice');
-      expect(response.body.pricing).toHaveProperty('professionalEarnings');
+      expect(response.body).toHaveProperty('data');
+      expect(response.body.data).toHaveProperty('basePrice');
+      expect(response.body.data).toHaveProperty('platformFee');
+      expect(response.body.data).toHaveProperty('taxAmount');
+      expect(response.body.data).toHaveProperty('totalPrice');
+      expect(response.body.data).toHaveProperty('professionalEarnings');
     }
   });
 });
