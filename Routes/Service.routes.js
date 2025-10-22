@@ -14,28 +14,31 @@ const router = express.Router();
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                     example: "64f1b0f9a93b2e7c12345678"
- *                   serviceName:
- *                     type: string
- *                     example: "Oil Change"
- *                   category:
- *                     type: string
- *                     example: "Maintenance"
- *                   price:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: array
+ *                   items:
  *                     type: object
  *                     properties:
- *                       min:
- *                         type: number
- *                         example: 50
- *                       max:
- *                         type: number
- *                         example: 100
+ *                       _id:
+ *                         type: string
+ *                         example: "64f1b0f9a93b2e7c12345678"
+ *                       serviceName:
+ *                         type: string
+ *                         example: "Oil Change"
+ *                       category:
+ *                         type: string
+ *                         example: "Maintenance"
+ *                       price:
+ *                         type: object
+ *                         properties:
+ *                           min:
+ *                             type: number
+ *                             example: 50
+ *                           max:
+ *                             type: number
+ *                             example: 100
  *       500:
  *         description: Internal server error
  */
