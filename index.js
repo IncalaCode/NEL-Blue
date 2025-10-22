@@ -121,6 +121,7 @@ app.use("/api/feedback", FeedbackRoute);
 app.use("/api/dispute", DisputeRoute);
 app.use("/api/notification", NotificationRoute);
 app.use("/api/availableMechanics", AvailableMechanicsRoute);
+app.use("/api/availableProfessional", AvailableMechanicsRoute);
 app.use("/api/mechanic", MechanicUserRoute);
 app.use("/api/service", ServiceRoute);
 app.use("/api/chat", ChatRoute);
