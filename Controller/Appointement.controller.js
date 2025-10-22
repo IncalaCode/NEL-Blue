@@ -51,88 +51,97 @@ const getHistory = asyncHandler(async (req, res) => {
   }
 });
 const addAppointment = asyncHandler(async (req, res) => {
-  const {
-    serviceId,
-    professionalId,
-    vehicleType,
-    appointmentDate,
-    appointmentTime,
-    issue,
-    otherIssue,
-    location,
-    duration
-  } = req.body;
+  try {
+    const {
+      serviceId,
+      professionalId,
+      vehicleType,
+      appointmentDate,
+      appointmentTime,
+      issue,
+      otherIssue,
+      location,
+      duration
+    } = req.body;
 
-  if (!serviceId || !professionalId || !appointmentDate || !appointmentTime || !issue || !duration) {
-    return res.status(400).json({ success: false, message: "All required fields must be provided" });
+    if (!serviceId || !professionalId || !appointmentDate || !appointmentTime || !issue || !duration) {
+      return res.status(400).json({ success: false, message: "All required fields must be provided" });
+    }
+
+    const User = require("../Models/User.model");
+    const Tax = require("../Models/Tax.model");
+    
+    const professional = await User.findById(professionalId);
+    if (!professional || professional.role !== "Professional") {
+      return res.status(404).json({ success: false, message: "Professional not found" });
+    }
+
+    if (!professional.hourlyRate || professional.hourlyRate <= 0) {
+      return res.status(400).json({ success: false, message: "Professional hourly rate not set" });
+    }
+
+    const taxConfig = await Tax.findOne().sort({ createdAt: -1 });
+    const taxPercentage = taxConfig?.taxPercentage || 8;
+    const platformFeePercentage = taxConfig?.platformFeePercentage || 10;
+
+    const hourlyRate = professional.hourlyRate;
+    const basePrice = hourlyRate * duration;
+    const platformFee = (basePrice * platformFeePercentage) / 100;
+    const taxAmount = (basePrice * taxPercentage) / 100;
+    const totalPrice = basePrice + platformFee + taxAmount;
+    const professionalEarnings = basePrice - platformFee;
+
+    const newAppointment = await Appointment.create({
+      userId: req.user._id,
+      professionalId,
+      serviceId,
+      vehicleType,
+      appointmentDate,
+      appointmentTime,
+      issue,
+      otherIssue,
+      location,
+      duration,
+      totalPrice,
+      taxAmount,
+      platformFee,
+      professionalEarnings,
+      status: "Pending"
+    });
+
+    const payment = await Payment.create({
+      client: req.user._id,
+      professional: professionalId,
+      appointment: newAppointment._id,
+      amount: totalPrice,
+      platformFee,
+      professionalEarnings,
+      currency: "USD",
+      status: "pending_payment"
+    });
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(totalPrice * 100),
+      currency: "usd",
+      metadata: {
+        appointmentId: newAppointment._id.toString(),
+        paymentId: payment._id.toString(),
+      },
+    });
+
+    payment.paymentIntentId = paymentIntent.id;
+    await payment.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Appointment created successfully",
+      appointment: newAppointment,
+      clientSecret: paymentIntent.client_secret
+    });
+  } catch (error) {
+    console.error("Add Appointment Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong", error: error.message });
   }
-
-  const User = require("../Models/User.model");
-  const Tax = require("../Models/Tax.model");
-  
-  const professional = await User.findById(professionalId);
-  if (!professional || professional.role !== "Professional") {
-    return res.status(404).json({ success: false, message: "Professional not found" });
-  }
-
-  const taxConfig = await Tax.findOne().sort({ createdAt: -1 });
-  const taxPercentage = taxConfig?.taxPercentage || 8;
-  const platformFeePercentage = taxConfig?.platformFeePercentage || 10;
-
-  const hourlyRate = professional.hourlyRate || 0;
-  const basePrice = hourlyRate * duration;
-  const platformFee = (basePrice * platformFeePercentage) / 100;
-  const taxAmount = (basePrice * taxPercentage) / 100;
-  const totalPrice = basePrice + platformFee + taxAmount;
-  const professionalEarnings = basePrice - platformFee;
-
-  const newAppointment = await Appointment.create({
-    userId: req.user._id,
-    professionalId,
-    serviceId,
-    vehicleType,
-    appointmentDate,
-    appointmentTime,
-    issue,
-    otherIssue,
-    location,
-    duration,
-    totalPrice,
-    taxAmount,
-    platformFee,
-    professionalEarnings,
-    status: "Pending"
-  });
-
-  const payment = await Payment.create({
-    client: req.user._id,
-    professional: professionalId,
-    appointment: newAppointment._id,
-    amount: totalPrice,
-    platformFee,
-    professionalEarnings,
-    currency: "USD",
-    status: "pending_payment"
-  });
-  
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(totalPrice * 100),
-    currency: "usd",
-    metadata: {
-      appointmentId: newAppointment._id.toString(),
-      paymentId: payment._id.toString(),
-    },
-  });
-
-  payment.paymentIntentId = paymentIntent.id;
-  await payment.save();
-
-  res.status(201).json({
-    success: true,
-    message: "Appointment created successfully",
-    appointment: newAppointment,
-    clientSecret: paymentIntent.client_secret
-  });
 });
 
 

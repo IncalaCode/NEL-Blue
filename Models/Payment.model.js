@@ -60,6 +60,7 @@ const paymentSchema = new mongoose.Schema(
     },
     transactionId: {
       type: String,
+      sparse: true,
     },
     dispute: {
       type: mongoose.Schema.Types.ObjectId,
