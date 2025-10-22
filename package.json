@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "jest",
-    "test:api": "jest tests/api.test.js",
+    "test": "jest --detectOpenHandles",
     "start": " node index.js",
     "dev": "nodemon index.js"
   },
