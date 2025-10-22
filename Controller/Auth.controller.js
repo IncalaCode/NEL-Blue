@@ -1,6 +1,7 @@
 const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 const User = require("../Models/User.model");
+const UserDTO = require("../dto/UserDTO");
 const redis = require("../Middleware/Redis");
 const transporter = require("../config/nodemailer");
 const asyncHandler = require("express-async-handler");
@@ -296,7 +297,7 @@ const verifySignup = asyncHandler(async (req, res) => {
         lastName: userData.lastName,
         email: userData.email,
         password: userData.password, // hashed in pre-save hook
-        phoneNumber: userData.phoneNumber,
+        phone: userData.phoneNumber,
         role: userData.role,
         address: userData.address,
         state: userData.state,
@@ -333,16 +334,7 @@ const verifySignup = asyncHandler(async (req, res) => {
       success: true,
       message: "OTP verified. User registered successfully.",
       data: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phoneNumber,
-        email: user.email,
-        role: user.role,
-        isClientIdentityVerified: user.isClientIdentityVerified,
-        isClientIdentitySubmited: user.isClientIdentitySubmited,
-        isProfessionalKycVerified: user.isProfessionalKycVerified,
-        isProfessionalKycSubmited: user.isProfessionalKycSubmited,
+        ...UserDTO.toResponse(user),
         accessToken,
         refreshToken,
         message: "User logged in successfully",
@@ -543,7 +535,7 @@ const signup = asyncHandler(async (req, res) => {
       address,
       state,
       zipCode,
-      phoneNumber,
+      phone: phoneNumber,
       role,
     });
     const { accessToken, refreshToken } = await generateToken(user._id);
@@ -672,28 +664,13 @@ const login = asyncHandler(async (req, res) => {
     await storeRefreshToken(user._id.toString(), refreshToken);
     storeCookies(res, accessToken, refreshToken);
 
+    // Populate services to match Dart ServiceCategory model
+    await user.populate('services');
+    
     return res.status(200).json({
       success: true,
       message: "User logged in successfully",
-      user: {
-        id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        phone: user.phoneNumber,
-        email: user.email,
-        role: user.role,
-        country: user.country,
-        bio: user.bio,
-        skills: user.skills,
-        yearsOfExperience: user.yearsOfExperience,
-        hourlyRate: user.hourlyRate,
-        certificates: user.certificates,
-        specialization: user.specialization,
-        isClientIdentityVerified: user.isClientIdentityVerified,
-        isClientIdentitySubmited: user.isClientIdentitySubmited,
-        isProfessionalKycVerified: user.isProfessionalKycVerified,
-        isProfessionalKycSubmited: user.isProfessionalKycSubmited,
-      },
+      user: UserDTO.toResponse(user),
       accessToken,
       refreshToken,
     });
@@ -1037,14 +1014,12 @@ const verifyTwoFactorAuth = asyncHandler(async (req, res) => {
     // Clear the OTP from redis
     await redis.del(`two_factor_otp:${email}`);
 
+    // Populate services for consistency
+    await user.populate('services');
+    
     res.status(200).json({
       success: true,
-      id: user._id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      phone: user.phoneNumber,
-      email: user.email,
-      role: user.role,
+      ...UserDTO.toResponse(user),
       accessToken,
       refreshToken,
       message: "Two-factor authentication successful",
@@ -1294,11 +1269,57 @@ const updateProfessionalKyc = asyncHandler(async (req, res) => {
   }
 });
 
+const checkVerification = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    res.status(200).json({ verified: user.identityVerified });
+  } catch (error) {
+    console.error("Check Verification Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+const toggleAvailability = asyncHandler(async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).populate('services');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
+    if (user.role !== "Professional") {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Only professionals can update availability" 
+      });
+    }
+    
+    // Toggle availability
+    user.availabilty = user.availabilty === "Available" ? "Unavailable" : "Available";
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      message: `Availability switched to ${user.availabilty}`,
+      user: UserDTO.toAvailabilityResponse(user)
+    });
+  } catch (error) {
+    console.error("Toggle Availability Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
 
 
 module.exports = {
   switchRole,
   updateProfessionalKyc,
+  checkVerification,
+  toggleAvailability,
   adminLogin,
   deleteMyAccount,
   adminIntiateSignup,

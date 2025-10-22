@@ -9,6 +9,8 @@ const {
   deleteMyAccount,
   signup,
   updateProfessionalKyc,
+  checkVerification,
+  toggleAvailability,
   handleWebhook,
   uploadCertificate,
   login,
@@ -829,6 +831,31 @@ router.get("/profile", protectRoute, getProfile);
  *     responses:
  *       200:
  *         description: List of users
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
  */
 router.get("/getallusers", protectRoute, superAdminRoute, getAllUser);
 /**
@@ -848,11 +875,50 @@ router.get("/getallusers", protectRoute, superAdminRoute, getAllUser);
  *             properties:
  *               phone:
  *                 type: string
+ *                 example: "+1234567890"
  *               address:
  *                 type: string
+ *                 example: "123 Main St"
  *     responses:
  *       200:
  *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Profile updated successfully
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
  */
 router.put("/updateprofile", protectRoute, updateProfile);
 // In your Auth.routes.js
@@ -983,9 +1049,47 @@ router.put("/password/update", protectRoute, updatePassword);
  *         required: true
  *         schema:
  *           type: string
+ *         description: User ID to delete
  *     responses:
  *       200:
  *         description: User deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User deleted successfully
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
  */
 router.delete("/deleteuser/:id", protectRoute, superAdminRoute, deleteUser);
 /**
@@ -1002,18 +1106,60 @@ router.delete("/deleteuser/:id", protectRoute, superAdminRoute, deleteUser);
  *         required: true
  *         schema:
  *           type: string
+ *         description: User ID to update
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - role
  *             properties:
  *               role:
  *                 type: string
+ *                 enum: [Client, Professional, Admin, SuperAdmin]
+ *                 example: Professional
  *     responses:
  *       200:
  *         description: User role updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: User role updated successfully
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
  */
 router.put(
   "/updateuserrole/:id",
@@ -1077,6 +1223,8 @@ router.post("/verify-2fa", verifyTwoFactorAuth);
  *     tags: [User]
  *     description: |
  *       This endpoint checks if the user's identity has been verified.
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: User verification status retrieved successfully
@@ -1110,21 +1258,7 @@ router.post("/verify-2fa", verifyTwoFactorAuth);
  *                   example: Server error
  */
 
-router.post("/check-verification", async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.json({ verified: user.identityVerified === true });
-  } catch (err) {
-    console.error("Check verification error:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+router.get("/check-verification", protectRoute, checkVerification);
 router.get("/stripe-verify", (req, res) => {
   // Not reading session_id or status
   const deepLink = "https://verify.stripe.test/close";
@@ -1139,8 +1273,18 @@ router.get("/stripe-verify", (req, res) => {
  *     description: |
  *       This endpoint creates a Stripe Identity Verification Session for the authenticated user.
  *       The session details (ID, client secret, and verification URL) are returned to initiate the verification flow.
- *     security:
- *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: user@example.com
  *     responses:
  *       200:
  *         description: Stripe verification session created successfully
@@ -1164,32 +1308,6 @@ router.get("/stripe-verify", (req, res) => {
  *                 verificationUrl:
  *                   type: string
  *                   example: https://verify.stripe.com/start/vs_12345
- *       401:
- *         description: Unauthorized - missing or invalid token
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Unauthorized
- *       404:
- *         description: User not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: User not found
  *       500:
  *         description: Server error while creating Stripe verification session
  *         content:
@@ -1540,5 +1658,121 @@ router.put(
   handleFileUploadErrors,
   updateProfessionalKyc
 );
+
+/**
+ * @swagger
+ * /auth/availabilty:
+ *   put:
+ *     summary: Toggle availabilty
+ *     description: >
+ *       Toggles the availabilty status of a Professional user between "Available" and "Unavailable".
+ *       No request body is required. Returns the updated user profile with the new availability.
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Availability toggled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Availability switched to Available
+ *                 user:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                       example: 68b371628b02ed6becedf6dc
+ *                     firstName:
+ *                       type: string
+ *                       example: surafel
+ *                     lastName:
+ *                       type: string
+ *                       example: wondu
+ *                     role:
+ *                       type: string
+ *                       example: Professional
+ *                     availability:
+ *                       type: string
+ *                       example: Available
+ *                     services:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["68b370b362d20a7e8373d394"]
+ *                     bio:
+ *                       type: string
+ *                       example: hello
+ *                     skills:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["Plumber", "Cleaner", "Electrician"]
+ *                     yearsOfExperience:
+ *                       type: integer
+ *                       example: 5
+ *                     hourlyRate:
+ *                       type: number
+ *                       example: 20
+ *                     certificates:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["/uploads/cert1.png"]
+ *                     specialization:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: []
+ *                     identityVerified:
+ *                       type: boolean
+ *                       example: false
+ *                     isClientIdentityVerified:
+ *                       type: boolean
+ *                       example: false
+ *                     isClientIdentitySubmited:
+ *                       type: boolean
+ *                       example: false
+ *                     isProfessionalKycVerified:
+ *                       type: boolean
+ *                       example: false
+ *                     isProfessionalKycSubmited:
+ *                       type: boolean
+ *                       example: true
+ *       400:
+ *         description: Non-professional users cannot update availability
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Only professionals can update availability
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: User not found
+ */
+router.put("/availabilty", protectRoute, toggleAvailability);
 
 module.exports = router;

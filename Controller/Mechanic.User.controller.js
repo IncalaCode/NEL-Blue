@@ -1,17 +1,18 @@
 //getProfile,updatePassword,addService,editService 
 
 const User = require("../Models/User.model");
+const UserDTO = require("../dto/UserDTO");
 const asyncHandler = require("express-async-handler");
 const Service= require("../Models/Service.model");
 
 const getProfile = asyncHandler(async (req, res) => {
     const user = await User.findById(req.user.id)
         .select("-password -resetPasswordToken -resetPasswordExpires")
-        .populate("services", "serviceName price availability");
+        .populate("services");
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.status(200).json(user);
+    res.status(200).json(UserDTO.toResponse(user));
 });
 
 const updatePassword = asyncHandler(async (req, res) => {

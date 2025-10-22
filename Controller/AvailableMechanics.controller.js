@@ -1,12 +1,14 @@
 const User=require("../Models/User.model");
+const UserDTO = require("../dto/UserDTO");
 const Service=require("../Models/Service.model")
 const Feedback=require("../Models/FeedBack.model")
 const asyncHandler = require("express-async-handler");
 const getAvailableMechanics = asyncHandler(async (req, res) => {
   try {
     // Get all mechanics without sensitive info
-    const mechanics = await User.find({ role: "Mechanic" })
-      .select("-password -resetPasswordToken -resetPasswordExpires");
+    const mechanics = await User.find({ role: "Professional" })
+      .select("-password -resetPasswordToken -resetPasswordExpires")
+      .populate("services");
 
     // Build detailed mechanic list
     const mechanicDetails = await Promise.all(
@@ -24,8 +26,7 @@ const getAvailableMechanics = asyncHandler(async (req, res) => {
             : null;
 
         return {
-          ...mechanic.toObject(),
-          services,
+          ...UserDTO.toResponse(mechanic),
           averageRating: avgRating,
           totalFeedbacks: feedbacks.length,
         };

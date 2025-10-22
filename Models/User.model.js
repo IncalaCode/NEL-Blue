@@ -51,11 +51,7 @@ const userSchema = mongoose.Schema(
     specialization: { type: [String] },
     address: { type: String },
     zipCode: { type: String },
-    availabilty: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Availability",
-      default: null,
-    },
+    availabilty: { type: String },
     certificates: { type: [String], default: [] },
     stripeAccountId: { type: String }, // connected account for professional
     identityVerified: { type: Boolean, default: false },
@@ -66,7 +62,7 @@ const userSchema = mongoose.Schema(
     },
 
     profileImage: { type: String },
-    phoneNumber: { type: String },
+    phone: { type: String },
     twoFactorEnabled: { type: Boolean, default: false },
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
