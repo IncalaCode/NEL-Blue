@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protectRoute } = require("../Middleware/Protect.route");
-const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,getHistory } = require("../Controller/Appointement.controller");
+const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,getHistory, calculateAppointmentCost } = require("../Controller/Appointement.controller");
 /**
  * @swagger
  * tags:
@@ -247,4 +247,68 @@ router.post("/addappointement",protectRoute,addAppointment);
  */
 
 router.put("/projectstatus/:id",protectRoute,updateProjectStatus);
+
+/**
+ * @swagger
+ * /appointement/calculate-price:
+ *   post:
+ *     summary: Pre-calculate appointment costs
+ *     tags: [Appointment]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - professionalId
+ *               - duration
+ *             properties:
+ *               professionalId:
+ *                 type: string
+ *               duration:
+ *                 type: number
+ *                 description: Duration in hours
+ *     responses:
+ *       200:
+ *         description: Cost calculated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     professionalId:
+ *                       type: string
+ *                     hourlyRate:
+ *                       type: number
+ *                     duration:
+ *                       type: number
+ *                     basePrice:
+ *                       type: number
+ *                     taxPercentage:
+ *                       type: number
+ *                     taxAmount:
+ *                       type: number
+ *                     platformFeePercentage:
+ *                       type: number
+ *                     platformFee:
+ *                       type: number
+ *                     totalPrice:
+ *                       type: number
+ *                     professionalEarnings:
+ *                       type: number
+ *       404:
+ *         description: Professional not found
+ */
+router.post("/calculate-price", protectRoute, calculateAppointmentCost);
+
 module.exports = router;

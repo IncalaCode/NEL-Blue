@@ -7,32 +7,34 @@ const AppointmentSchema = mongoose.Schema(
       ref: "User",
       required: true,
     },
-    serviceId: [{
+    professionalId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
+    },
+    serviceId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Service",
       required: true,
-    }],
-    categories: {
-      type: String,
-      required: true,
     },
-    vehicleType: {
-      type: String,
-      required: true,
-    },
+    vehicleType: { type: String },
     appointmentDate: { type: Date, required: true },
     appointmentTime: { type: String, required: true },
     issue: { type: String, required: true },
     otherIssue: { type: String },
-    budget: { type: Number, required: true },
+    location: { type: String },
+    duration: { type: Number },
     status: {
       type: String,
       enum: ["Pending", "Confirmed", "Cancelled"],
       default: "Pending",
     },
+    totalPrice: { type: Number },
+    taxAmount: { type: Number },
+    platformFee: { type: Number },
+    professionalEarnings: { type: Number },
+    jobId: { type: mongoose.Schema.Types.ObjectId, ref: "Job" }
   },
   { timestamps: true }
 );
 
-// ✅ Use the correct model name here
 module.exports = mongoose.model("Appointment", AppointmentSchema);

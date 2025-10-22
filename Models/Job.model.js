@@ -5,9 +5,10 @@ const JobSchema = new mongoose.Schema(
     serviceId: { type: mongoose.Schema.Types.ObjectId, ref: "Service", required: true },
     ratePerHour: { type: Number, required: true },
     location: { type: String, required: true },
+    availability: { type: Boolean, default: true },
     skills: [{ type: String }],
     description: { type: String, required: true },
-    duration: { type: String },
+    duration: { type: Number },
     deposit: {
       amount: { type: Number, default: 0 },
       confirmed: { type: Boolean, default: false }
@@ -17,7 +18,7 @@ const JobSchema = new mongoose.Schema(
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     applicants: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     acceptedApplicant: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    appointmentDate: { type: String },
+    appointmentDate: { type: Date },
     appointmentTime: { type: String }
   },
   { timestamps: true }

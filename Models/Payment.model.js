@@ -8,8 +8,11 @@ const paymentSchema = new mongoose.Schema(
     },
     mechanic: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+      ref: "User"
+    },
+    professional: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User"
     },
     appointment: {
       type: mongoose.Schema.Types.ObjectId,
@@ -25,8 +28,10 @@ const paymentSchema = new mongoose.Schema(
       required: true,
     },
     mechanicEarnings: {
-      type: Number,
-      required: true,
+      type: Number
+    },
+    professionalEarnings: {
+      type: Number
     },
     currency: {
       type: String,

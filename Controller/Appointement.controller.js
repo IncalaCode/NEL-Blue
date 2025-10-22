@@ -138,4 +138,49 @@ const updateProjectStatus = asyncHandler(async (req, res) => {
     res.status(500).json({ message: "Something went wrong" });
   }
 })
-module.exports = { getAppointment, deleteAppointement ,addAppointment,getHistory,updateProjectStatus};
+const calculateAppointmentCost = asyncHandler(async (req, res) => {
+  try {
+    const { professionalId, duration } = req.body;
+
+    const User = require("../Models/User.model");
+    const Tax = require("../Models/Tax.model");
+    
+    const professional = await User.findById(professionalId);
+    if (!professional || professional.role !== "Professional") {
+      return res.status(404).json({ success: false, message: "Professional not found" });
+    }
+
+    const taxConfig = await Tax.findOne().sort({ createdAt: -1 });
+    const taxPercentage = taxConfig?.taxPercentage || 8;
+    const platformFeePercentage = taxConfig?.platformFeePercentage || 10;
+
+    const hourlyRate = professional.hourlyRate || 0;
+    const basePrice = hourlyRate * duration;
+    const platformFee = (basePrice * platformFeePercentage) / 100;
+    const taxAmount = (basePrice * taxPercentage) / 100;
+    const totalPrice = basePrice + platformFee + taxAmount;
+    const professionalEarnings = basePrice - platformFee;
+
+    res.status(200).json({
+      success: true,
+      message: "Cost calculated successfully",
+      data: {
+        professionalId,
+        hourlyRate,
+        duration,
+        basePrice,
+        taxPercentage,
+        taxAmount,
+        platformFeePercentage,
+        platformFee,
+        totalPrice,
+        professionalEarnings
+      }
+    });
+  } catch (error) {
+    console.error("Calculate Cost Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+module.exports = { getAppointment, deleteAppointement ,addAppointment,getHistory,updateProjectStatus, calculateAppointmentCost};
