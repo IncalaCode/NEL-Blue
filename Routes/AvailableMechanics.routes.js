@@ -1,7 +1,7 @@
 //get all mechanics available for appointments
 const express = require("express");
 const router = express.Router();
-const { getAvailableMechanics } = require("../Controller/AvailableMechanics.controller");
+const { getAvailableMechanics, getProfessionalsByCategory } = require("../Controller/AvailableMechanics.controller");
 /**
  * @swagger
  * tags:
@@ -70,4 +70,82 @@ const { getAvailableMechanics } = require("../Controller/AvailableMechanics.cont
  */
 
 router.get("/getAvailablehandyman", getAvailableMechanics);
+
+/**
+ * @swagger
+ * /availableProfessional/getProfessionaWithCatagories:
+ *   get:
+ *     summary: Get professionals by service category with pagination
+ *     tags: [Handyman]
+ *     parameters:
+ *       - in: query
+ *         name: serviceName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Name of the service category
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of items per page
+ *     responses:
+ *       200:
+ *         description: Successfully retrieved professionals
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 locationUsed:
+ *                   type: object
+ *                   properties:
+ *                     lat:
+ *                       type: number
+ *                       nullable: true
+ *                     long:
+ *                       type: number
+ *                       nullable: true
+ *                     country:
+ *                       type: string
+ *                       nullable: true
+ *                     region:
+ *                       type: string
+ *                       nullable: true
+ *                     city:
+ *                       type: string
+ *                       nullable: true
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *       404:
+ *         description: Service not found
+ *       500:
+ *         description: Server error
+ */
+router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
+
 module.exports = router;
