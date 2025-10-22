@@ -11,7 +11,7 @@ const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,g
 
 /**
  * @swagger
- * /appointement/getappointement:
+ * /appointment/getappointement:
  *   get:
  *     summary: Get all appointments for the logged-in user
  *     tags: [Appointment]
@@ -61,7 +61,7 @@ const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,g
 router.get("/getappointement",protectRoute,getAppointment);
 /**
  * @swagger
- * /appointement/deleteappointement/{id}:
+ * /appointment/deleteappointement/{id}:
  *   put:
  *     summary: Delete an appointment by ID
  *     tags: [Appointment]
@@ -86,7 +86,7 @@ router.get("/getappointement",protectRoute,getAppointment);
 router.put("/deleteappointement/:id",protectRoute,deleteAppointement);
 /**
  * @swagger
- * /appointement/history:
+ * /appointment/history:
  *   get:
  *     summary: Get appointment history (Confirmed or Cancelled)
  *     tags: [Appointment]
@@ -122,7 +122,7 @@ router.put("/deleteappointement/:id",protectRoute,deleteAppointement);
 router.get("/history",protectRoute,getHistory);
 /**
  * @swagger
- * /appointement/addappointement:
+ * /appointment/addappointment:
  *   post:
  *     summary: Create a new appointment
  *     tags: [Appointment]
@@ -136,45 +136,58 @@ router.get("/history",protectRoute,getHistory);
  *             type: object
  *             required:
  *               - serviceId
- *               - catagories
- *               - vehicleType
+ *               - professionalId
  *               - appointmentDate
  *               - appointmentTime
  *               - issue
- *               - budget
+ *               - duration
  *             properties:
  *               serviceId:
  *                 type: string
- *               catagories:
+ *               professionalId:
  *                 type: string
  *               vehicleType:
  *                 type: string
  *               appointmentDate:
  *                 type: string
- *                 format: date
  *               appointmentTime:
  *                 type: string
  *               issue:
  *                 type: string
  *               otherIssue:
  *                 type: string
- *               budget:
+ *               location:
+ *                 type: string
+ *               duration:
  *                 type: number
  *     responses:
  *       201:
  *         description: Appointment created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 appointment:
+ *                   type: object
+ *                 clientSecret:
+ *                   type: string
  *       400:
- *         description: Missing fields or invalid time
+ *         description: Missing fields
  *       404:
- *         description: Service not found
+ *         description: Professional not found
  *       500:
  *         description: Something went wrong
  */
 
-router.post("/addappointement",protectRoute,addAppointment);
+router.post("/addappointment",protectRoute,addAppointment);
 /**
  * @swagger
- * /appointement/projectstatus/{id}:
+ * /appointment/projectstatus/{id}:
  *   put:
  *     summary: Update the status of a project
  *     tags: [Project]
@@ -250,7 +263,7 @@ router.put("/projectstatus/:id",protectRoute,updateProjectStatus);
 
 /**
  * @swagger
- * /appointement/calculate-price:
+ * /appointment/calculate-price:
  *   post:
  *     summary: Pre-calculate appointment costs
  *     tags: [Appointment]

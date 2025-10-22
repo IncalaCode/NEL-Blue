@@ -53,55 +53,70 @@ const getHistory = asyncHandler(async (req, res) => {
 const addAppointment = asyncHandler(async (req, res) => {
   const {
     serviceId,
-    catagories,
+    professionalId,
     vehicleType,
     appointmentDate,
     appointmentTime,
     issue,
     otherIssue,
-    budget,
+    location,
+    duration
   } = req.body;
 
-  if (
-    !serviceId ||
-    !catagories ||
-    !vehicleType ||
-    !appointmentDate ||
-    !appointmentTime ||
-    !issue ||
-    !budget
-  ) {
-    return res.status(400).json({ message: "All required fields must be provided" });
+  if (!serviceId || !professionalId || !appointmentDate || !appointmentTime || !issue || !duration) {
+    return res.status(400).json({ success: false, message: "All required fields must be provided" });
   }
 
-  // Check service existence and availability omitted for brevity (keep your logic)
+  const User = require("../Models/User.model");
+  const Tax = require("../Models/Tax.model");
+  
+  const professional = await User.findById(professionalId);
+  if (!professional || professional.role !== "Professional") {
+    return res.status(404).json({ success: false, message: "Professional not found" });
+  }
 
-  // 1. Create appointment
+  const taxConfig = await Tax.findOne().sort({ createdAt: -1 });
+  const taxPercentage = taxConfig?.taxPercentage || 8;
+  const platformFeePercentage = taxConfig?.platformFeePercentage || 10;
+
+  const hourlyRate = professional.hourlyRate || 0;
+  const basePrice = hourlyRate * duration;
+  const platformFee = (basePrice * platformFeePercentage) / 100;
+  const taxAmount = (basePrice * taxPercentage) / 100;
+  const totalPrice = basePrice + platformFee + taxAmount;
+  const professionalEarnings = basePrice - platformFee;
+
   const newAppointment = await Appointment.create({
     userId: req.user._id,
+    professionalId,
     serviceId,
-    catagories,
     vehicleType,
     appointmentDate,
     appointmentTime,
     issue,
     otherIssue,
-    budget,
+    location,
+    duration,
+    totalPrice,
+    taxAmount,
+    platformFee,
+    professionalEarnings,
+    status: "Pending"
   });
 
-  // 2. Create Payment record (Pending)
   const payment = await Payment.create({
-    userId: req.user._id,
-    appointmentId: newAppointment._id,
-    services: [serviceId], // can be multiple if you want
-    totalPrice: budget,
-    currency: "USD", // or dynamic
-    paymentStatus: "Pending",
-    provider: "Stripe",
+    client: req.user._id,
+    professional: professionalId,
+    appointment: newAppointment._id,
+    amount: totalPrice,
+    platformFee,
+    professionalEarnings,
+    currency: "USD",
+    status: "pending_payment"
   });
 
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(budget * 100), // in cents
+    amount: Math.round(totalPrice * 100),
     currency: "usd",
     metadata: {
       appointmentId: newAppointment._id.toString(),
@@ -109,15 +124,14 @@ const addAppointment = asyncHandler(async (req, res) => {
     },
   });
 
-  // 4. Save PaymentIntent id to payment record
   payment.paymentIntentId = paymentIntent.id;
   await payment.save();
 
-  // 5. Return client secret to frontend to complete payment
   res.status(201).json({
-    message: "Appointment created successfully. Complete payment to confirm.",
+    success: true,
+    message: "Appointment created successfully",
     appointment: newAppointment,
-    clientSecret: paymentIntent.client_secret,
+    clientSecret: paymentIntent.client_secret
   });
 });
 
