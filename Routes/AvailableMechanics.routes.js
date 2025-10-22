@@ -15,56 +15,62 @@ const { getAvailableMechanics, getProfessionalsByCategory, searchProfessionals }
  *   get:
  *     summary: Get all available professionals for appointments (paginated)
  *     tags: [AvailableProfessional]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
- *         description: Successfully retrieved all Handyman with their services, availability, and feedback rating
+ *         description: Successfully retrieved professionals
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   _id:
- *                     type: string
- *                   firstName:
- *                     type: string
- *                   lastName:
- *                     type: string
- *                   email:
- *                     type: string
- *                   phoneNumber:
- *                     type: string
- *                   specialization:
- *                     type: array
- *                     items:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 locationUsed:
+ *                   type: object
+ *                   properties:
+ *                     lat:
+ *                       type: number
+ *                       nullable: true
+ *                     long:
+ *                       type: number
+ *                       nullable: true
+ *                     country:
  *                       type: string
- *                   services:
- *                     type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         serviceName:
- *                           type: string
- *                         price:
- *                           type: number
- *                         availability:
- *                           type: array
- *                           items:
- *                             type: object
- *                             properties:
- *                               day:
- *                                 type: string
- *                               startTime:
- *                                 type: string
- *                               endTime:
- *                                 type: string
- *                               status:
- *                                 type: string
- *                   averageRating:
- *                     type: string
- *                   totalFeedbacks:
- *                     type: number
+ *                       nullable: true
+ *                     region:
+ *                       type: string
+ *                       nullable: true
+ *                     city:
+ *                       type: string
+ *                       nullable: true
+ *                 pagination:
+ *                   type: object
+ *                   properties:
+ *                     total:
+ *                       type: integer
+ *                     page:
+ *                       type: integer
+ *                     limit:
+ *                       type: integer
+ *                     totalPages:
+ *                       type: integer
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
  *       500:
  *         description: Something went wrong
  */
@@ -192,16 +198,7 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  *           type: integer
  *           default: 10
  *         description: Number of records per page
- *       - in: query
- *         name: lat
- *         schema:
- *           type: number
- *         description: Latitude for location-based search (optional)
- *       - in: query
- *         name: long
- *         schema:
- *           type: number
- *         description: Longitude for location-based search (optional)
+
  *     responses:
  *       200:
  *         description: Successfully retrieved professionals matching the search
@@ -219,8 +216,19 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  *                   properties:
  *                     lat:
  *                       type: number
+ *                       nullable: true
  *                     long:
  *                       type: number
+ *                       nullable: true
+ *                     country:
+ *                       type: string
+ *                       nullable: true
+ *                     region:
+ *                       type: string
+ *                       nullable: true
+ *                     city:
+ *                       type: string
+ *                       nullable: true
  *                 pagination:
  *                   type: object
  *                   properties:

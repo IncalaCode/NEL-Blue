@@ -6,15 +6,19 @@ const asyncHandler = require("express-async-handler");
 
 const getAvailableMechanics = asyncHandler(async (req, res) => {
   try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (page - 1) * limit;
+
     const mechanics = await User.find({ role: "Professional" })
       .select("-password -resetPasswordToken -resetPasswordExpires")
-      .populate("services");
+      .populate("services")
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments({ role: "Professional" });
 
     const mechanicDetails = await Promise.all(
       mechanics.map(async (mechanic) => {
-        const services = await Service.find({ professionalId: mechanic._id })
-          .select("serviceName price availability");
-
         const feedbacks = await Feedback.find({ userId: mechanic._id });
         const avgRating =
           feedbacks.length > 0
@@ -31,10 +35,27 @@ const getAvailableMechanics = asyncHandler(async (req, res) => {
       })
     );
 
-    res.status(200).json(mechanicDetails);
+    res.status(200).json({
+      success: true,
+      message: "Professionals retrieved successfully",
+      locationUsed: {
+        lat: null,
+        long: null,
+        country: null,
+        region: null,
+        city: null
+      },
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      },
+      data: mechanicDetails
+    });
   } catch (error) {
     console.error("Get Mechanics Error:", error);
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ success: false, message: "Something went wrong" });
   }
 });
 
@@ -87,7 +108,7 @@ const getProfessionalsByCategory = asyncHandler(async (req, res) => {
 
 const searchProfessionals = asyncHandler(async (req, res) => {
   try {
-    const { query, serviceName, isVerified, minPrice, maxPrice, page = 1, limit = 10, lat, long } = req.query;
+    const { query, serviceName, isVerified, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
     let filter = { role: "Professional" };
@@ -103,7 +124,6 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       filter.isProfessionalKycVerified = isVerified === "true";
     }
 
-    let serviceFilter = {};
     if (serviceName) {
       const service = await Service.findOne({ serviceName });
       if (service) {
@@ -111,18 +131,12 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       }
     }
 
-    if (minPrice || maxPrice) {
-      serviceFilter["price.min"] = {};
-      if (minPrice) serviceFilter["price.min"].$gte = parseFloat(minPrice);
-      if (maxPrice) serviceFilter["price.max"] = { $lte: parseFloat(maxPrice) };
-    }
-
     let professionals = await User.find(filter)
       .populate("services")
       .skip(skip)
       .limit(parseInt(limit));
 
-    if (Object.keys(serviceFilter).length > 0) {
+    if (minPrice || maxPrice) {
       professionals = professionals.filter(prof => 
         prof.services.some(s => 
           (!minPrice || s.price?.min >= parseFloat(minPrice)) &&
@@ -137,14 +151,17 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       success: true,
       message: "Professionals retrieved successfully",
       locationUsed: {
-        lat: lat ? parseFloat(lat) : null,
-        long: long ? parseFloat(long) : null
+        lat: null,
+        long: null,
+        country: null,
+        region: null,
+        city: null
       },
       pagination: {
-        total,
+        total: professionals.length,
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: Math.ceil(total / limit)
+        totalPages: Math.ceil(professionals.length / limit)
       },
       data: professionals.map(p => UserDTO.toResponse(p))
     });
