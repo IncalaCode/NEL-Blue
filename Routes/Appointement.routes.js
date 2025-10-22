@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protectRoute } = require("../Middleware/Protect.route");
-const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,getHistory, calculateAppointmentCost } = require("../Controller/Appointement.controller");
+const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,getHistory, calculateAppointmentCost, getAppointmentsByStatus } = require("../Controller/Appointement.controller");
 /**
  * @swagger
  * tags:
@@ -323,5 +323,36 @@ router.put("/projectstatus/:id",protectRoute,updateProjectStatus);
  *         description: Professional not found
  */
 router.post("/calculate-price", protectRoute, calculateAppointmentCost);
+
+/**
+ * @swagger
+ * /appointment/{status}:
+ *   get:
+ *     summary: Get appointments by status with pagination
+ *     tags: [Appointment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: status
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [requests, active, completed, cancelled]
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Appointments retrieved successfully
+ */
+router.get("/:status", protectRoute, getAppointmentsByStatus);
 
 module.exports = router;

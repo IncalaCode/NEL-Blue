@@ -8,6 +8,7 @@ const db = require("./config/db.config");
 const { swaggerUi, swaggerSpec } = require("./swagger");
 const { init: initSocket } = require("./socket");
 const { handleWebhook } = require("./Controller/Auth.controller");
+const { startAppointmentCron } = require("./Service/appointmentCron");
 
 // Initialize app
 const app = express();
@@ -145,6 +146,9 @@ server = app.listen(PORT, () => {
 
 // === Init Socket.io ===
 initSocket(server);
+
+// === Start Cron Jobs ===
+startAppointmentCron();
 }
 
 module.exports = { app, server };

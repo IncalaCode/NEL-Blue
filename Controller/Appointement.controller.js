@@ -7,16 +7,34 @@ const Stripe = require("stripe");
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 const getAppointment = asyncHandler(async (req, res) => {
   try {
-    const appointments = await Appointment.find({ userId: req.user._id })
-      .populate({
-        path: "serviceId",
-        select: "serviceName availability", // select fields you want
-      });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
 
-    res.status(200).json(appointments);
+    const query = { userId: req.user._id };
+    const total = await Appointment.countDocuments(query);
+
+    const appointments = await Appointment.find(query)
+      .populate("userId", "firstName lastName email phone profilePicture")
+      .populate("professionalId", "firstName lastName email phone profilePicture hourlyRate")
+      .populate("serviceId", "serviceName category price")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      data: appointments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("Get Appointment Error:", error);
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ success: false, message: "Something went wrong" });
   }
 });
 const deleteAppointement = asyncHandler(async (req, res) => {
@@ -39,15 +57,37 @@ const deleteAppointement = asyncHandler(async (req, res) => {
 });
 const getHistory = asyncHandler(async (req, res) => {
   try {
-    const history = await Appointment.find({
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const query = {
       userId: req.user._id,
       status: { $in: ["Confirmed", "Cancelled"] },
-    }).populate("serviceId", "serviceName");
+    };
+    const total = await Appointment.countDocuments(query);
 
-    res.status(200).json(history);
+    const history = await Appointment.find(query)
+      .populate("userId", "firstName lastName email phone profilePicture")
+      .populate("professionalId", "firstName lastName email phone profilePicture hourlyRate")
+      .populate("serviceId", "serviceName category price")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      data: history,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("Get History Error:", error);
-    res.status(500).json({ message: "Something went wrong" });
+    res.status(500).json({ success: false, message: "Something went wrong" });
   }
 });
 const addAppointment = asyncHandler(async (req, res) => {
@@ -206,4 +246,50 @@ const calculateAppointmentCost = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getAppointment, deleteAppointement ,addAppointment,getHistory,updateProjectStatus, calculateAppointmentCost};
+const getAppointmentsByStatus = asyncHandler(async (req, res) => {
+  try {
+    const { status } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const statusMap = {
+      requests: "Pending",
+      active: "Confirmed",
+      completed: "Completed",
+      cancelled: "Cancelled"
+    };
+
+    const dbStatus = statusMap[status];
+    if (!dbStatus) {
+      return res.status(400).json({ success: false, message: "Invalid status" });
+    }
+
+    const query = { userId: req.user._id, status: dbStatus };
+    const total = await Appointment.countDocuments(query);
+    
+    const appointments = await Appointment.find(query)
+      .populate("userId", "firstName lastName email phone profilePicture")
+      .populate("professionalId", "firstName lastName email phone profilePicture hourlyRate")
+      .populate("serviceId", "serviceName category price")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      data: appointments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
+  } catch (error) {
+    console.error("Get Appointments By Status Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+module.exports = { getAppointment, deleteAppointement ,addAppointment,getHistory,updateProjectStatus, calculateAppointmentCost, getAppointmentsByStatus};

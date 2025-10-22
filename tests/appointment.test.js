@@ -16,7 +16,7 @@ describe('Appointment Endpoints', () => {
       });
     
     authToken = loginResponse.body.accessToken;
-    console.log('Login successful, token obtained');
+    console.log('Login successful, token obtained', authToken);
   });
 
   afterAll(async () => {
