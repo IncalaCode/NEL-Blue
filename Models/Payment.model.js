@@ -38,8 +38,7 @@ const paymentSchema = new mongoose.Schema(
       default: "USD",
     },
     paymentIntentId: {
-      type: String,
-      required: true,
+      type: String
     },
     transferId: {
       type: String,

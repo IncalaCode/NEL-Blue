@@ -114,7 +114,7 @@ const addAppointment = asyncHandler(async (req, res) => {
     currency: "USD",
     status: "pending_payment"
   });
-
+  
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(totalPrice * 100),
     currency: "usd",
