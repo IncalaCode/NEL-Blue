@@ -85,7 +85,77 @@ const getProfessionalsByCategory = asyncHandler(async (req, res) => {
   }
 });
 
+const searchProfessionals = asyncHandler(async (req, res) => {
+  try {
+    const { query, serviceName, isVerified, minPrice, maxPrice, page = 1, limit = 10, lat, long } = req.query;
+    const skip = (page - 1) * limit;
+
+    let filter = { role: "Professional" };
+
+    if (query) {
+      filter.$or = [
+        { firstName: { $regex: query, $options: "i" } },
+        { lastName: { $regex: query, $options: "i" } }
+      ];
+    }
+
+    if (isVerified !== undefined) {
+      filter.isProfessionalKycVerified = isVerified === "true";
+    }
+
+    let serviceFilter = {};
+    if (serviceName) {
+      const service = await Service.findOne({ serviceName });
+      if (service) {
+        filter.services = service._id;
+      }
+    }
+
+    if (minPrice || maxPrice) {
+      serviceFilter["price.min"] = {};
+      if (minPrice) serviceFilter["price.min"].$gte = parseFloat(minPrice);
+      if (maxPrice) serviceFilter["price.max"] = { $lte: parseFloat(maxPrice) };
+    }
+
+    let professionals = await User.find(filter)
+      .populate("services")
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    if (Object.keys(serviceFilter).length > 0) {
+      professionals = professionals.filter(prof => 
+        prof.services.some(s => 
+          (!minPrice || s.price?.min >= parseFloat(minPrice)) &&
+          (!maxPrice || s.price?.max <= parseFloat(maxPrice))
+        )
+      );
+    }
+
+    const total = await User.countDocuments(filter);
+
+    res.status(200).json({
+      success: true,
+      message: "Professionals retrieved successfully",
+      locationUsed: {
+        lat: lat ? parseFloat(lat) : null,
+        long: long ? parseFloat(long) : null
+      },
+      pagination: {
+        total,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(total / limit)
+      },
+      data: professionals.map(p => UserDTO.toResponse(p))
+    });
+  } catch (error) {
+    console.error("Search Professionals Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
 module.exports = {
   getAvailableMechanics,
-  getProfessionalsByCategory
+  getProfessionalsByCategory,
+  searchProfessionals
 }

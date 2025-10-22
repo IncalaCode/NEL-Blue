@@ -11,7 +11,7 @@ const options = {
     },
     servers: [
       {
-        url: "https://NELblue.onrender.com/api", // Base URL for the API
+        url: "https://nel-blue.onrender.com/api", // Base URL for the API
       },
     ],
   },
