@@ -117,7 +117,7 @@ const paymentRoute = require("./Routes/Payment.routes");
 const AdminDashboard=require("./Routes/Admin.routes");
 const JobRoute = require("./Routes/Job.routes");
 app.use("/api/auth", AuthRoute);
-app.use("/api/appointement", AppointementRoute);
+app.use("/api/appointment", AppointementRoute);
 app.use("/api/feedback", FeedbackRoute);
 app.use("/api/dispute", DisputeRoute);
 app.use("/api/notification", NotificationRoute);
