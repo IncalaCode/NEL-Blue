@@ -15,8 +15,14 @@ const getAppointment = asyncHandler(async (req, res) => {
     const total = await Appointment.countDocuments(query);
 
     const appointments = await Appointment.find(query)
-      .populate("userId", "firstName lastName email phone profilePicture")
-      .populate("professionalId", "firstName lastName email phone profilePicture hourlyRate")
+      .populate({
+        path: "userId",
+        populate: { path: "services" }
+      })
+      .populate({
+        path: "professionalId",
+        populate: { path: "services" }
+      })
       .populate("serviceId", "serviceName category price")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -68,8 +74,14 @@ const getHistory = asyncHandler(async (req, res) => {
     const total = await Appointment.countDocuments(query);
 
     const history = await Appointment.find(query)
-      .populate("userId", "firstName lastName email phone profilePicture")
-      .populate("professionalId", "firstName lastName email phone profilePicture hourlyRate")
+      .populate({
+        path: "userId",
+        populate: { path: "services" }
+      })
+      .populate({
+        path: "professionalId",
+        populate: { path: "services" }
+      })
       .populate("serviceId", "serviceName category price")
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -108,6 +120,8 @@ const addAppointment = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: "All required fields must be provided" });
     }
 
+    const serviceIds = Array.isArray(serviceId) ? serviceId : [serviceId];
+
     const User = require("../Models/User.model");
     const Tax = require("../Models/Tax.model");
     
@@ -134,7 +148,7 @@ const addAppointment = asyncHandler(async (req, res) => {
     const newAppointment = await Appointment.create({
       userId: req.user._id,
       professionalId,
-      serviceId,
+      serviceId: serviceIds,
       vehicleType,
       appointmentDate,
       appointmentTime,
@@ -269,8 +283,14 @@ const getAppointmentsByStatus = asyncHandler(async (req, res) => {
     const total = await Appointment.countDocuments(query);
     
     const appointments = await Appointment.find(query)
-      .populate("userId", "firstName lastName email phone profilePicture")
-      .populate("professionalId", "firstName lastName email phone profilePicture hourlyRate")
+      .populate({
+        path: "userId",
+        populate: { path: "services" }
+      })
+      .populate({
+        path: "professionalId",
+        populate: { path: "services" }
+      })
       .populate("serviceId", "serviceName category price")
       .sort({ createdAt: -1 })
       .skip(skip)
