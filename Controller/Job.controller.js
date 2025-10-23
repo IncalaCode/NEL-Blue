@@ -2,22 +2,26 @@ const Job = require("../Models/Job.model");
 const asyncHandler = require("express-async-handler");
 
 const createJob = asyncHandler(async (req, res) => {
-  const { serviceId, ratePerHour, location, skills, description, duration, paymentMethod, appointmentDate, appointmentTime } = req.body;
+  const { serviceId, ratePerHour, location, skills, description, duration, appointmentDate, appointmentTime } = req.body;
   
+  if (!serviceId || !ratePerHour || !location || !description) {
+    return res.status(400).json({ success: false, message: "Missing required fields" });
+  }
+
   const job = await Job.create({
     serviceId,
     ratePerHour,
     location,
-    skills,
+    skills: skills || [],
     description,
     duration,
-    paymentMethod,
+    paymentMethod: "hourly",
     appointmentDate,
     appointmentTime,
     createdBy: req.user._id
   });
 
-  res.status(201).json(job);
+  res.status(201).json({ success: true, message: "Job created successfully", job });
 });
 
 const getRecentJobs = asyncHandler(async (req, res) => {
