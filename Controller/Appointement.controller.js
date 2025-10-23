@@ -312,4 +312,50 @@ const getAppointmentsByStatus = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { getAppointment, deleteAppointement ,addAppointment,getHistory,updateProjectStatus, calculateAppointmentCost, getAppointmentsByStatus};
+const confirmAppointment = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: "Appointment not found" });
+    }
+
+    if (appointment.professionalId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    appointment.status = "Confirmed";
+    await appointment.save();
+
+    res.status(200).json({ success: true, message: "Appointment confirmed" });
+  } catch (error) {
+    console.error("Confirm Appointment Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+const rejectAppointment = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const appointment = await Appointment.findById(id);
+
+    if (!appointment) {
+      return res.status(404).json({ success: false, message: "Appointment not found" });
+    }
+
+    if (appointment.professionalId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    appointment.status = "Cancelled";
+    await appointment.save();
+
+    res.status(200).json({ success: true, message: "Appointment rejected" });
+  } catch (error) {
+    console.error("Reject Appointment Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+module.exports = { getAppointment, deleteAppointement ,addAppointment,getHistory,updateProjectStatus, calculateAppointmentCost, getAppointmentsByStatus, confirmAppointment, rejectAppointment};

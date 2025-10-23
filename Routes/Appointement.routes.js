@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { protectRoute } = require("../Middleware/Protect.route");
-const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,getHistory, calculateAppointmentCost, getAppointmentsByStatus } = require("../Controller/Appointement.controller");
+const { getAppointment,updateProjectStatus, deleteAppointement ,addAppointment,getHistory, calculateAppointmentCost, getAppointmentsByStatus, confirmAppointment, rejectAppointment } = require("../Controller/Appointement.controller");
 /**
  * @swagger
  * tags:
@@ -354,5 +354,77 @@ router.post("/calculate-price", protectRoute, calculateAppointmentCost);
  *         description: Appointments retrieved successfully
  */
 router.get("/:status", protectRoute, getAppointmentsByStatus);
+
+/**
+ * @swagger
+ * /appointment/{id}/confirm:
+ *   put:
+ *     summary: Confirm/Accept an appointment (Professional only)
+ *     tags: [Appointment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *     responses:
+ *       200:
+ *         description: Appointment confirmed successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Something went wrong
+ */
+router.put("/:id/confirm", protectRoute, confirmAppointment);
+
+/**
+ * @swagger
+ * /appointment/{id}/reject:
+ *   put:
+ *     summary: Reject an appointment (Professional only)
+ *     tags: [Appointment]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Appointment ID
+ *     responses:
+ *       200:
+ *         description: Appointment rejected successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       403:
+ *         description: Not authorized
+ *       404:
+ *         description: Appointment not found
+ *       500:
+ *         description: Something went wrong
+ */
+router.put("/:id/reject", protectRoute, rejectAppointment);
 
 module.exports = router;
