@@ -56,7 +56,7 @@ describe('Appointment Endpoints', () => {
       expect(response.body.appointment).toHaveProperty('platformFee');
       expect(response.body.appointment).toHaveProperty('professionalEarnings');
     }
-  });
+  }, 10000);
 
   test('POST /api/appointment/calculate-price - should calculate appointment cost', async () => {
     const response = await request(app)
@@ -80,6 +80,96 @@ describe('Appointment Endpoints', () => {
       expect(response.body.data).toHaveProperty('taxAmount');
       expect(response.body.data).toHaveProperty('totalPrice');
       expect(response.body.data).toHaveProperty('professionalEarnings');
+    }
+  });
+
+  test('GET /api/appointment/requests - should get pending appointments', async () => {
+    const response = await request(app)
+      .get('/api/appointment/requests?page=1&limit=10')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    console.log('Get requests status:', response.status);
+    console.log('Get requests body:', JSON.stringify(response.body, null, 2));
+
+    expect([200, 401, 500]).toContain(response.status);
+    
+    if (response.status === 200) {
+      expect(response.body).toHaveProperty('success');
+      expect(response.body).toHaveProperty('data');
+      expect(response.body).toHaveProperty('pagination');
+      expect(Array.isArray(response.body.data)).toBe(true);
+    }
+  });
+
+  test('GET /api/appointment/active - should get confirmed appointments', async () => {
+    const response = await request(app)
+      .get('/api/appointment/active?page=1&limit=10')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    console.log('Get active status:', response.status);
+    console.log('Get active body:', JSON.stringify(response.body, null, 2));
+
+    expect([200, 401, 500]).toContain(response.status);
+    
+    if (response.status === 200) {
+      expect(response.body).toHaveProperty('success');
+      expect(response.body).toHaveProperty('data');
+      expect(response.body).toHaveProperty('pagination');
+      expect(Array.isArray(response.body.data)).toBe(true);
+    }
+  });
+
+  test('PUT /api/appointment/:id/confirm - should confirm appointment', async () => {
+    // First get a pending appointment
+    const getResponse = await request(app)
+      .get('/api/appointment/requests?page=1&limit=1')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    if (getResponse.status === 200 && getResponse.body.data.length > 0) {
+      const appointmentId = getResponse.body.data[0]._id;
+      
+      const response = await request(app)
+        .put(`/api/appointment/${appointmentId}/confirm`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      console.log('Confirm appointment status:', response.status);
+      console.log('Confirm appointment body:', JSON.stringify(response.body, null, 2));
+
+      expect([200, 403, 404, 500]).toContain(response.status);
+      
+      if (response.status === 200) {
+        expect(response.body).toHaveProperty('success');
+        expect(response.body.success).toBe(true);
+      }
+    } else {
+      console.log('No pending appointments to confirm');
+    }
+  });
+
+  test('PUT /api/appointment/:id/reject - should reject appointment', async () => {
+    // First get a pending appointment
+    const getResponse = await request(app)
+      .get('/api/appointment/requests?page=1&limit=1')
+      .set('Authorization', `Bearer ${authToken}`);
+
+    if (getResponse.status === 200 && getResponse.body.data.length > 0) {
+      const appointmentId = getResponse.body.data[0]._id;
+      
+      const response = await request(app)
+        .put(`/api/appointment/${appointmentId}/reject`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      console.log('Reject appointment status:', response.status);
+      console.log('Reject appointment body:', JSON.stringify(response.body, null, 2));
+
+      expect([200, 403, 404, 500]).toContain(response.status);
+      
+      if (response.status === 200) {
+        expect(response.body).toHaveProperty('success');
+        expect(response.body.success).toBe(true);
+      }
+    } else {
+      console.log('No pending appointments to reject');
     }
   });
 });

@@ -279,7 +279,14 @@ const getAppointmentsByStatus = asyncHandler(async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid status" });
     }
 
-    const query = { userId: req.user._id, status: dbStatus };
+    const query = { status: dbStatus };
+    
+    if (req.user.role === "Professional") {
+      query.professionalId = req.user._id;
+    } else {
+      query.userId = req.user._id;
+    }
+    
     const total = await Appointment.countDocuments(query);
     
     const appointments = await Appointment.find(query)
