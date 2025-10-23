@@ -9,13 +9,13 @@ const getAvailableMechanics = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
-    const mechanics = await User.find({ role: "Professional" })
+    const mechanics = await User.find({ role: "Professional", availabilty: "Available" })
       .select("-password -resetPasswordToken -resetPasswordExpires")
       .populate("services")
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await User.countDocuments({ role: "Professional" });
+    const total = await User.countDocuments({ role: "Professional", availabilty: "Available" });
 
     const mechanicDetails = await Promise.all(
       mechanics.map(async (mechanic) => {
