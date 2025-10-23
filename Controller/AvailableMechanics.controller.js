@@ -111,7 +111,7 @@ const searchProfessionals = asyncHandler(async (req, res) => {
     const { query, serviceName, isVerified, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
-    let filter = { role: "Professional" };
+    let filter = { role: "Professional", availabilty: "Available" };
 
     if (query) {
       filter.$or = [
