@@ -735,7 +735,8 @@ const refreshToken = asyncHandler(async (req, res) => {
 // Get Profile
 const getProfile = asyncHandler(async (req, res) => {
   try {
-    res.status(200).json({ success: true, user: req.user });
+    const user = await User.findById(req.user._id).select("-password").populate("services");
+    res.status(200).json({ success: true, user });
   } catch (error) {
     console.error("Get Profile Error:", error);
     res.status(500).json({ success: false, message: error.message || "Something went wrong" });
