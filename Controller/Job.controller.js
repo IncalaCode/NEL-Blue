@@ -38,6 +38,16 @@ const getRecentJobs = asyncHandler(async (req, res) => {
   
   const totalJobs = await Job.countDocuments();
 
+  const jobsWithPayload = await Promise.all(jobs.map(async (job) => {
+    const hasApplied = req.user ? await JobApplication.findOne({ jobId: job._id, userId: req.user._id }) : null;
+    return {
+      ...job.toObject(),
+      additionalPayload: {
+        hasCurrentUserApplied: !!hasApplied
+      }
+    };
+  }));
+
   res.status(200).json({
     success: true,
     pagination: {
@@ -45,10 +55,7 @@ const getRecentJobs = asyncHandler(async (req, res) => {
       totalPages: Math.ceil(totalJobs / limit),
       totalJobs
     },
-    jobs: jobs.map(job => ({
-      ...job.toObject(),
-      additionalPayload: null
-    }))
+    jobs: jobsWithPayload
   });
 });
 
@@ -56,14 +63,26 @@ const getAppliedJobs = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
 
-  const jobs = await Job.find({ applicants: req.user._id })
-    .populate("serviceId")
-    .populate("createdBy", "firstName lastName email")
+  const applications = await JobApplication.find({ userId: req.user._id })
+    .populate({
+      path: "jobId",
+      populate: [
+        { path: "serviceId" },
+        { path: "createdBy", select: "firstName lastName email" }
+      ]
+    })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
 
-  const totalJobs = await Job.countDocuments({ applicants: req.user._id });
+  const totalJobs = await JobApplication.countDocuments({ userId: req.user._id });
+
+  const jobs = applications.map(app => ({
+    ...app.jobId.toObject(),
+    additionalPayload: {
+      hasCurrentUserApplied: true
+    }
+  }));
 
   res.status(200).json({
     success: true,
@@ -72,10 +91,7 @@ const getAppliedJobs = asyncHandler(async (req, res) => {
       totalPages: Math.ceil(totalJobs / limit),
       totalJobs
     },
-    jobs: jobs.map(job => ({
-      ...job.toObject(),
-      additionalPayload: null
-    }))
+    jobs
   });
 });
 
@@ -101,7 +117,9 @@ const getMyJobs = asyncHandler(async (req, res) => {
     },
     jobs: jobs.map(job => ({
       ...job.toObject(),
-      additionalPayload: null
+      additionalPayload: {
+        hasCurrentUserApplied: false
+      }
     }))
   });
 });
@@ -113,7 +131,14 @@ const getJobById = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: "Job not found" });
   }
 
-  res.status(200).json(job);
+  const hasApplied = req.user ? await JobApplication.findOne({ jobId: req.params.id, userId: req.user._id }) : null;
+
+  res.status(200).json({
+    ...job.toObject(),
+    additionalPayload: {
+      hasCurrentUserApplied: !!hasApplied
+    }
+  });
 });
 
 const updateJob = asyncHandler(async (req, res) => {
