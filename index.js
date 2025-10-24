@@ -117,6 +117,7 @@ const ChatRoute = require("./Routes/chat.routes");
 const paymentRoute = require("./Routes/Payment.routes");
 const AdminDashboard=require("./Routes/Admin.routes");
 const JobRoute = require("./Routes/Job.routes");
+const AdvertisementRoute = require("./Routes/Advertisement.routes");
 app.use("/api/auth", AuthRoute);
 app.use("/api/appointment", AppointementRoute);
 app.use("/api/feedback", FeedbackRoute);
@@ -130,6 +131,7 @@ app.use("/api/chat", ChatRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/admin",AdminDashboard);
 app.use("/api/jobs", JobRoute);
+app.use("/api/advertisement", AdvertisementRoute);
 // === Root Route ===
 app.get("/", (req, res) => {
   res.send("Backend is running successfully 🚀");
