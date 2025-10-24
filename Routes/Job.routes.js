@@ -74,7 +74,7 @@ router.post("/", protectRoute, createJob);
  * @swagger
  * /jobs/recent:
  *   get:
- *     summary: Get recent job posts (paginated)
+ *     summary: Get recent job feed (latest first)
  *     tags: [Jobs]
  *     parameters:
  *       - in: query
@@ -95,9 +95,9 @@ router.get("/recent", getRecentJobs);
 
 /**
  * @swagger
- * /jobs/applied:
+ * /jobs/my:
  *   get:
- *     summary: Get jobs the logged-in user has applied for (paginated)
+ *     summary: Get my posted jobs (by client)
  *     tags: [Jobs]
  *     security:
  *       - bearerAuth: []
@@ -114,37 +114,53 @@ router.get("/recent", getRecentJobs);
  *           default: 10
  *     responses:
  *       200:
- *         description: List of jobs the user has applied for
- *       401:
- *         description: Unauthorized
+ *         description: List of my posted jobs
+ */
+router.get("/my", protectRoute, getMyJobs);
+
+/**
+ * @swagger
+ * /jobs/applied:
+ *   get:
+ *     summary: Get jobs I applied to (by professional)
+ *     tags: [Jobs]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: List of jobs I applied to
  */
 router.get("/applied", protectRoute, getAppliedJobs);
 
 /**
  * @swagger
- * /jobs/my:
+ * /jobs/{id}:
  *   get:
- *     summary: Get my posted jobs (paginated)
+ *     summary: Get a job by ID
  *     tags: [Jobs]
- *     security:
- *       - bearerAuth: []
  *     parameters:
- *       - in: query
- *         name: page
+ *       - in: path
+ *         name: id
+ *         required: true
  *         schema:
- *           type: integer
- *           default: 1
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 10
+ *           type: string
  *     responses:
  *       200:
- *         description: List of my jobs
+ *         description: Job details
+ *       404:
+ *         description: Job not found
  */
-router.get("/my", protectRoute, getMyJobs);
-
 /**
  * @swagger
  * /jobs/{id}:

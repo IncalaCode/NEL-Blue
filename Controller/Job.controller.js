@@ -28,15 +28,26 @@ const getRecentJobs = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
 
-  const jobs = await Job.find().sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit));
+  const jobs = await Job.find()
+    .populate("serviceId")
+    .populate("createdBy", "firstName lastName email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
+  
   const totalJobs = await Job.countDocuments();
 
   res.status(200).json({
     success: true,
-    page: parseInt(page),
-    totalPages: Math.ceil(totalJobs / limit),
-    totalJobs,
-    jobs
+    pagination: {
+      page: parseInt(page),
+      totalPages: Math.ceil(totalJobs / limit),
+      totalJobs
+    },
+    jobs: jobs.map(job => ({
+      ...job.toObject(),
+      additionalPayload: null
+    }))
   });
 });
 
@@ -45,24 +56,23 @@ const getAppliedJobs = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const jobs = await Job.find({ applicants: req.user._id })
+    .populate("serviceId")
     .populate("createdBy", "firstName lastName email")
     .skip(skip)
     .limit(parseInt(limit));
 
-  const totalApplied = await Job.countDocuments({ applicants: req.user._id });
+  const totalJobs = await Job.countDocuments({ applicants: req.user._id });
 
   res.status(200).json({
     success: true,
-    page: parseInt(page),
-    totalPages: Math.ceil(totalApplied / limit),
-    totalApplied,
+    pagination: {
+      page: parseInt(page),
+      totalPages: Math.ceil(totalJobs / limit),
+      totalJobs
+    },
     jobs: jobs.map(job => ({
       ...job.toObject(),
-      createdBy: {
-        _id: job.createdBy._id,
-        fullName: `${job.createdBy.firstName} ${job.createdBy.lastName}`,
-        email: job.createdBy.email
-      }
+      additionalPayload: null
     }))
   });
 });
@@ -71,15 +81,25 @@ const getMyJobs = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
 
-  const jobs = await Job.find({ createdBy: req.user._id }).skip(skip).limit(parseInt(limit));
-  const total = await Job.countDocuments({ createdBy: req.user._id });
+  const jobs = await Job.find({ createdBy: req.user._id })
+    .populate("serviceId")
+    .populate("createdBy", "firstName lastName email")
+    .skip(skip)
+    .limit(parseInt(limit));
+  
+  const totalJobs = await Job.countDocuments({ createdBy: req.user._id });
 
   res.status(200).json({
     success: true,
-    page: parseInt(page),
-    totalPages: Math.ceil(total / limit),
-    total,
-    jobs
+    pagination: {
+      page: parseInt(page),
+      totalPages: Math.ceil(totalJobs / limit),
+      totalJobs
+    },
+    jobs: jobs.map(job => ({
+      ...job.toObject(),
+      additionalPayload: null
+    }))
   });
 });
 
