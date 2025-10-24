@@ -3,7 +3,9 @@ const router = express.Router();
 const { protectRoute } = require("../Middleware/Protect.route");
 const {
   createAdvertisement,
-  deleteAdvertisement
+  deleteAdvertisement,
+  getAdvertisements,
+  getMyAdvertisements
 } = require("../Controller/Advertisement.controller");
 
 /**
@@ -52,6 +54,54 @@ const {
  *         description: Advertisement created successfully
  */
 router.post("/", protectRoute, createAdvertisement);
+
+/**
+ * @swagger
+ * /advertisement:
+ *   get:
+ *     summary: Get all advertisements (feed)
+ *     tags: [Advertisement]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: List of advertisements
+ */
+router.get("/", getAdvertisements);
+
+/**
+ * @swagger
+ * /advertisement/my-own:
+ *   get:
+ *     summary: Get my own advertisements (latest first)
+ *     tags: [Advertisement]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: List of my advertisements
+ */
+router.get("/my-own", protectRoute, getMyAdvertisements);
 
 /**
  * @swagger

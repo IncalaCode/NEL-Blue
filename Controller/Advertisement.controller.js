@@ -21,6 +21,46 @@ const createAdvertisement = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, message: "Advertisement created successfully", advertisement });
 });
 
+const getAdvertisements = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
+
+  const advertisements = await Advertisement.find()
+    .populate("serviceId")
+    .populate("professionalId", "firstName lastName email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
+  
+  const count = await Advertisement.countDocuments();
+
+  res.status(200).json({
+    success: true,
+    count,
+    data: advertisements
+  });
+});
+
+const getMyAdvertisements = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
+
+  const advertisements = await Advertisement.find({ professionalId: req.user._id })
+    .populate("serviceId")
+    .populate("professionalId", "firstName lastName email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(parseInt(limit));
+  
+  const count = await Advertisement.countDocuments({ professionalId: req.user._id });
+
+  res.status(200).json({
+    success: true,
+    count,
+    data: advertisements
+  });
+});
+
 const deleteAdvertisement = asyncHandler(async (req, res) => {
   const advertisement = await Advertisement.findById(req.params.id);
 
@@ -38,5 +78,7 @@ const deleteAdvertisement = asyncHandler(async (req, res) => {
 
 module.exports = {
   createAdvertisement,
-  deleteAdvertisement
+  deleteAdvertisement,
+  getAdvertisements,
+  getMyAdvertisements
 };

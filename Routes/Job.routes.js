@@ -12,7 +12,8 @@ const {
   applyForJob,
   getJobApplicants,
   acceptApplicant,
-  declineApplicant
+  declineApplicant,
+  getAllJobApplicants
 } = require("../Controller/Job.controller");
 
 /**
@@ -145,22 +146,29 @@ router.get("/applied", protectRoute, getAppliedJobs);
 
 /**
  * @swagger
- * /jobs/{id}:
+ * /jobs/all-applicants:
  *   get:
- *     summary: Get a job by ID
+ *     summary: Get all applicants for user's active/open jobs
  *     tags: [Jobs]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
- *       - in: path
- *         name: id
- *         required: true
+ *       - in: query
+ *         name: page
  *         schema:
- *           type: string
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
- *         description: Job details
- *       404:
- *         description: Job not found
+ *         description: List of all job applicants
  */
+router.get("/all-applicants", protectRoute, getAllJobApplicants);
+
 /**
  * @swagger
  * /jobs/{id}:
@@ -179,7 +187,7 @@ router.get("/applied", protectRoute, getAppliedJobs);
  *       404:
  *         description: Job not found
  */
-router.get("/:id", protectRoute , getJobById);
+router.get("/:id", protectRoute, getJobById);
 
 /**
  * @swagger

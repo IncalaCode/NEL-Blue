@@ -306,6 +306,36 @@ const declineApplicant = asyncHandler(async (req, res) => {
   res.status(200).json({ success: true, message: "Applicant declined" });
 });
 
+const getAllJobApplicants = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
+
+  // Get all active/open jobs for the current user
+  const userJobs = await Job.find({ 
+    createdBy: req.user._id, 
+    status: { $in: ["open", "in-progress"] }
+  }).select("_id");
+
+  const jobIds = userJobs.map(job => job._id);
+
+  // Get all applications for these jobs
+  const applicants = await JobApplication.find({ jobId: { $in: jobIds } })
+    .populate("jobId")
+    .populate("userId", "firstName lastName email phone")
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  const totalApplicants = await JobApplication.countDocuments({ jobId: { $in: jobIds } });
+
+  res.status(200).json({
+    success: true,
+    page: parseInt(page),
+    totalPages: Math.ceil(totalApplicants / limit),
+    totalApplicants,
+    applicants
+  });
+});
+
 module.exports = {
   createJob,
   getRecentJobs,
@@ -317,5 +347,6 @@ module.exports = {
   applyForJob,
   getJobApplicants,
   acceptApplicant,
-  declineApplicant
+  declineApplicant,
+  getAllJobApplicants
 };

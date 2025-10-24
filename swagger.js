@@ -13,6 +13,10 @@ const options = {
       {
         url: "https://nel-blue.onrender.com/api", // Base URL for the API
       },
+     {
+        url: "http://localhost:5000/api",
+        description: "Local development server"
+      }
     ],
   },
   apis: ["./Routes/*.js"], // Scan all route files
