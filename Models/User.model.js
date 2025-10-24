@@ -71,7 +71,8 @@ const userSchema = mongoose.Schema(
       completedAppointments: { type: Number, default: 0 },
       activeAppointments: { type: Number, default: 0 },
       advertisedServices: { type: Number, default: 0 },
-      allAppointments: { type: Number, default: 0 }
+      allAppointments: { type: Number, default: 0 },
+      totalClients: { type: Number, default: 0 }
     }
   },
   {

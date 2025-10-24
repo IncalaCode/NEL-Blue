@@ -30,7 +30,8 @@ class UserDTO {
         completedAppointments: 0,
         activeAppointments: 0,
         advertisedServices: 0,
-        allAppointments: 0
+        allAppointments: 0,
+        totalClients: 0
       },
     };
   }
@@ -59,7 +60,8 @@ class UserDTO {
         completedAppointments: 0,
         activeAppointments: 0,
         advertisedServices: 0,
-        allAppointments: 0
+        allAppointments: 0,
+        totalClients: 0
       },
     };
   }

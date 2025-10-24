@@ -26,13 +26,18 @@ const updateUserMetrics = async (userId) => {
       $or: [{ userId }, { professionalId: userId }]
     });
 
+    // Count total unique clients (for professionals)
+    const uniqueClients = await Appointment.distinct('userId', { professionalId: userId });
+    const totalClients = uniqueClients.length;
+
     // Update user metrics
     await User.findByIdAndUpdate(userId, {
       metrics: {
         completedAppointments,
         activeAppointments,
         advertisedServices,
-        allAppointments
+        allAppointments,
+        totalClients
       }
     });
 
