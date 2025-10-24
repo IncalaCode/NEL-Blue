@@ -126,7 +126,7 @@ app.use("/api/notification", NotificationRoute);
 app.use("/api/availableMechanics", AvailableMechanicsRoute);
 app.use("/api/availableProfessional", AvailableMechanicsRoute);
 app.use("/api/mechanic", MechanicUserRoute);
-app.use("/api/service", ServiceRoute);
+app.use("/api/srvice", ServiceRoute);
 app.use("/api/chat", ChatRoute);
 app.use("/api/payment", paymentRoute);
 app.use("/api/admin",AdminDashboard);

@@ -228,6 +228,10 @@ const getJobApplicants = asyncHandler(async (req, res) => {
   }
 
   const applicants = await JobApplication.find({ jobId: req.params.id })
+    .populate({
+      path: "jobId",
+      populate: { path: "serviceId" }
+    })
     .populate("userId", "firstName lastName email phone")
     .skip(skip)
     .limit(parseInt(limit));
@@ -244,47 +248,54 @@ const getJobApplicants = asyncHandler(async (req, res) => {
 });
 
 const acceptApplicant = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.id).populate("serviceId");
+  try {
+    const job = await Job.findById(req.params.id).populate("serviceId");
 
-  if (!job) {
-    return res.status(404).json({ success: false, message: "Job not found" });
+    if (!job) {
+      return res.status(404).json({ success: false, message: "Job not found" });
+    }
+
+    if (job.createdBy.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, message: "Not authorized" });
+    }
+
+    // Update JobApplication status to accepted
+    await JobApplication.findOneAndUpdate(
+      { jobId: req.params.id, userId: req.params.applicantId },
+      { status: "accepted" }
+    );
+
+    // Update job status and accepted applicant
+    job.acceptedApplicant = req.params.applicantId;
+    job.status = "in-progress";
+    await job.save();
+
+    // Only create appointment if date and time are provided
+    if (job.appointmentDate && job.appointmentTime) {
+      const Appointment = require("../Models/Appointement.model");
+      await Appointment.create({
+        userId: job.createdBy,
+        professionalId: req.params.applicantId,
+        serviceId: [job.serviceId._id],
+        appointmentDate: job.appointmentDate,
+        appointmentTime: job.appointmentTime,
+        issue: job.description,
+        location: job.location,
+        duration: job.duration,
+        status: "Confirmed",
+        jobId: job._id
+      });
+    }
+
+    // Update metrics for both client and professional
+    await updateUserMetrics(job.createdBy);
+    await updateUserMetrics(req.params.applicantId);
+
+    res.status(200).json({ success: true, message: "Applicant accepted" });
+  } catch (error) {
+    console.error("Accept Applicant Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
   }
-
-  if (job.createdBy.toString() !== req.user._id.toString()) {
-    return res.status(403).json({ success: false, message: "Not authorized" });
-  }
-
-  // Update JobApplication status to accepted
-  await JobApplication.findOneAndUpdate(
-    { jobId: req.params.id, userId: req.params.applicantId },
-    { status: "accepted" }
-  );
-
-  // Update job status and accepted applicant
-  job.acceptedApplicant = req.params.applicantId;
-  job.status = "in-progress";
-  await job.save();
-
-  // Create appointment from job details
-  const Appointment = require("../Models/Appointement.model");
-  await Appointment.create({
-    userId: job.createdBy, // Client who posted the job
-    professionalId: req.params.applicantId, // Accepted professional
-    serviceId: [job.serviceId._id],
-    appointmentDate: job.appointmentDate,
-    appointmentTime: job.appointmentTime,
-    issue: job.description,
-    location: job.location,
-    duration: job.duration,
-    status: "Confirmed",
-    jobId: job._id
-  });
-
-  // Update metrics for both client and professional
-  await updateUserMetrics(job.createdBy);
-  await updateUserMetrics(req.params.applicantId);
-
-  res.status(200).json({ success: true, message: "Applicant accepted" });
 });
 
 const declineApplicant = asyncHandler(async (req, res) => {
@@ -325,8 +336,12 @@ const getAllJobApplicants = asyncHandler(async (req, res) => {
 
   // Get all applications for these jobs
   const applicants = await JobApplication.find({ jobId: { $in: jobIds } })
-    .populate("jobId")
+    .populate({
+      path: "jobId",
+      populate: { path: "serviceId" }
+    })
     .populate("userId", "firstName lastName email phone")
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
 
