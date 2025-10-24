@@ -187,11 +187,18 @@ const applyForJob = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: "Already applied" });
   }
 
+  // Create JobApplication record
   await JobApplication.create({
     jobId: req.params.id,
     userId: req.user._id,
     status: "pending"
   });
+
+  // Also add to Job's applicants array for backward compatibility
+  if (!job.applicants.includes(req.user._id)) {
+    job.applicants.push(req.user._id);
+    await job.save();
+  }
 
   res.status(200).json({ success: true, message: "Applied successfully" });
 });
