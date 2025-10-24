@@ -270,22 +270,20 @@ const acceptApplicant = asyncHandler(async (req, res) => {
     job.status = "in-progress";
     await job.save();
 
-    // Only create appointment if date and time are provided
-    if (job.appointmentDate && job.appointmentTime) {
-      const Appointment = require("../Models/Appointement.model");
-      await Appointment.create({
-        userId: job.createdBy,
-        professionalId: req.params.applicantId,
-        serviceId: [job.serviceId._id],
-        appointmentDate: job.appointmentDate,
-        appointmentTime: job.appointmentTime,
-        issue: job.description,
-        location: job.location,
-        duration: job.duration,
-        status: "Confirmed",
-        jobId: job._id
-      });
-    }
+    // Create appointment from job details
+    const Appointment = require("../Models/Appointement.model");
+    await Appointment.create({
+      userId: job.createdBy,
+      professionalId: req.params.applicantId,
+      serviceId: [job.serviceId._id],
+      appointmentDate: job.appointmentDate,
+      appointmentTime: job.appointmentTime,
+      issue: job.description,
+      location: job.location,
+      duration: job.duration,
+      status: "Confirmed",
+      jobId: job._id
+    });
 
     // Update metrics for both client and professional
     await updateUserMetrics(job.createdBy);
