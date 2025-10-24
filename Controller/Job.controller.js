@@ -1,4 +1,5 @@
 const Job = require("../Models/Job.model");
+const JobApplication = require("../Models/JobApplication.model");
 const asyncHandler = require("express-async-handler");
 
 const createJob = asyncHandler(async (req, res) => {
@@ -156,12 +157,16 @@ const applyForJob = asyncHandler(async (req, res) => {
     return res.status(400).json({ success: false, message: "Cannot apply to your own job" });
   }
 
-  if (job.applicants.includes(req.user._id)) {
+  const existingApplication = await JobApplication.findOne({ jobId: req.params.id, userId: req.user._id });
+  if (existingApplication) {
     return res.status(400).json({ success: false, message: "Already applied" });
   }
 
-  job.applicants.push(req.user._id);
-  await job.save();
+  await JobApplication.create({
+    jobId: req.params.id,
+    userId: req.user._id,
+    status: "pending"
+  });
 
   res.status(200).json({ success: true, message: "Applied successfully" });
 });
@@ -170,24 +175,24 @@ const getJobApplicants = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
 
-  const job = await Job.findById(req.params.id).populate({
-    path: "applicants",
-    select: "firstName lastName email phone",
-    options: { skip, limit: parseInt(limit) }
-  });
-
+  const job = await Job.findById(req.params.id);
   if (!job) {
     return res.status(404).json({ success: false, message: "Job not found" });
   }
 
-  const totalApplicants = job.applicants.length;
+  const applicants = await JobApplication.find({ jobId: req.params.id })
+    .populate("userId", "firstName lastName email phone")
+    .skip(skip)
+    .limit(parseInt(limit));
+
+  const totalApplicants = await JobApplication.countDocuments({ jobId: req.params.id });
 
   res.status(200).json({
     success: true,
     page: parseInt(page),
     totalPages: Math.ceil(totalApplicants / limit),
     totalApplicants,
-    applicants: job.applicants
+    applicants
   });
 });
 

@@ -242,6 +242,15 @@ router.delete("/:id", protectRoute, deleteJob);
  *     responses:
  *       200:
  *         description: Applied successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  *       400:
  *         description: Already applied or self-application
  *       404:
@@ -276,6 +285,52 @@ router.post("/:id/apply", protectRoute, applyForJob);
  *     responses:
  *       200:
  *         description: List of job applications
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 page:
+ *                   type: integer
+ *                 totalPages:
+ *                   type: integer
+ *                 totalApplicants:
+ *                   type: integer
+ *                 applicants:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       _id:
+ *                         type: string
+ *                       jobId:
+ *                         type: string
+ *                       userId:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           firstName:
+ *                             type: string
+ *                           lastName:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *                           phone:
+ *                             type: string
+ *                       status:
+ *                         type: string
+ *                         enum: [pending, accepted, rejected]
+ *                       createdAt:
+ *                         type: string
+ *                       updatedAt:
+ *                         type: string
+ *                       __v:
+ *                         type: integer
+ *       404:
+ *         description: Job not found
  */
 router.get("/:id/applicants", protectRoute, getJobApplicants);
 
