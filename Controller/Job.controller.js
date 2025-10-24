@@ -39,11 +39,18 @@ const getRecentJobs = asyncHandler(async (req, res) => {
   const totalJobs = await Job.countDocuments();
 
   const jobsWithPayload = await Promise.all(jobs.map(async (job) => {
-    const hasApplied = req.user ? await JobApplication.findOne({ jobId: job._id, userId: req.user._id }) : null;
+    let hasApplied = false;
+    if (req.user && req.user._id) {
+      const application = await JobApplication.findOne({ 
+        jobId: job._id, 
+        userId: req.user._id 
+      });
+      hasApplied = !!application;
+    }
     return {
       ...job.toObject(),
       additionalPayload: {
-        hasCurrentUserApplied: !!hasApplied
+        hasCurrentUserApplied: hasApplied
       }
     };
   }));
@@ -131,12 +138,19 @@ const getJobById = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: "Job not found" });
   }
 
-  const hasApplied = req.user ? await JobApplication.findOne({ jobId: req.params.id, userId: req.user._id }) : null;
+  let hasApplied = false;
+  if (req.user && req.user._id) {
+    const application = await JobApplication.findOne({ 
+      jobId: req.params.id, 
+      userId: req.user._id 
+    });
+    hasApplied = !!application;
+  }
 
   res.status(200).json({
     ...job.toObject(),
     additionalPayload: {
-      hasCurrentUserApplied: !!hasApplied
+      hasCurrentUserApplied: hasApplied
     }
   });
 });

@@ -91,7 +91,7 @@ router.post("/", protectRoute, createJob);
  *       200:
  *         description: List of recent jobs
  */
-router.get("/recent", getRecentJobs);
+router.get("/recent", protectRoute, getRecentJobs);
 
 /**
  * @swagger
@@ -179,7 +179,7 @@ router.get("/applied", protectRoute, getAppliedJobs);
  *       404:
  *         description: Job not found
  */
-router.get("/:id", getJobById);
+router.get("/:id", protectRoute , getJobById);
 
 /**
  * @swagger
