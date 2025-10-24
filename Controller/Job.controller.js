@@ -243,7 +243,7 @@ const getJobApplicants = asyncHandler(async (req, res) => {
 });
 
 const acceptApplicant = asyncHandler(async (req, res) => {
-  const job = await Job.findById(req.params.id);
+  const job = await Job.findById(req.params.id).populate("serviceId");
 
   if (!job) {
     return res.status(404).json({ success: false, message: "Job not found" });
@@ -253,9 +253,31 @@ const acceptApplicant = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: "Not authorized" });
   }
 
+  // Update JobApplication status to accepted
+  await JobApplication.findOneAndUpdate(
+    { jobId: req.params.id, userId: req.params.applicantId },
+    { status: "accepted" }
+  );
+
+  // Update job status and accepted applicant
   job.acceptedApplicant = req.params.applicantId;
   job.status = "in-progress";
   await job.save();
+
+  // Create appointment from job details
+  const Appointment = require("../Models/Appointement.model");
+  await Appointment.create({
+    userId: job.createdBy, // Client who posted the job
+    professionalId: req.params.applicantId, // Accepted professional
+    serviceId: [job.serviceId._id],
+    appointmentDate: job.appointmentDate,
+    appointmentTime: job.appointmentTime,
+    issue: job.description,
+    location: job.location,
+    duration: job.duration,
+    status: "Confirmed",
+    jobId: job._id
+  });
 
   res.status(200).json({ success: true, message: "Applicant accepted" });
 });
@@ -271,6 +293,13 @@ const declineApplicant = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: "Not authorized" });
   }
 
+  // Delete the JobApplication record
+  await JobApplication.findOneAndDelete({
+    jobId: req.params.id,
+    userId: req.params.applicantId
+  });
+
+  // Remove from job applicants array
   job.applicants = job.applicants.filter(id => id.toString() !== req.params.applicantId);
   await job.save();
 
