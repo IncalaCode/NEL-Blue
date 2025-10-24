@@ -58,6 +58,7 @@ const getAppliedJobs = asyncHandler(async (req, res) => {
   const jobs = await Job.find({ applicants: req.user._id })
     .populate("serviceId")
     .populate("createdBy", "firstName lastName email")
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
 
@@ -84,6 +85,7 @@ const getMyJobs = asyncHandler(async (req, res) => {
   const jobs = await Job.find({ createdBy: req.user._id })
     .populate("serviceId")
     .populate("createdBy", "firstName lastName email")
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(parseInt(limit));
   
