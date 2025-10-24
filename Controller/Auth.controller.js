@@ -9,7 +9,8 @@ const mongoose = require("mongoose");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const Payment = require("../Models/Payment.model");
 const bcrypt=require("bcrypt");
-const Service=require("../Models/Service.model")
+const Service=require("../Models/Service.model");
+const { updateUserMetrics } = require("../utils/updateMetrics");
 // ========================
 // TOKEN HELPERS
 // ========================
@@ -664,13 +665,17 @@ const login = asyncHandler(async (req, res) => {
     await storeRefreshToken(user._id.toString(), refreshToken);
     storeCookies(res, accessToken, refreshToken);
 
-    // Populate services to match Dart ServiceCategory model
+    // Update metrics and populate services
+    await updateUserMetrics(user._id);
     await user.populate('services');
+    
+    // Refresh user to get updated metrics
+    const updatedUser = await User.findById(user._id).populate('services');
     
     return res.status(200).json({
       success: true,
       message: "User logged in successfully",
-      user: UserDTO.toResponse(user),
+      user: UserDTO.toResponse(updatedUser),
       accessToken,
       refreshToken,
     });
@@ -735,6 +740,9 @@ const refreshToken = asyncHandler(async (req, res) => {
 // Get Profile
 const getProfile = asyncHandler(async (req, res) => {
   try {
+    // Update metrics first
+    await updateUserMetrics(req.user._id);
+    
     const user = await User.findById(req.user._id).select("-password").populate("services");
     res.status(200).json({ success: true, user: UserDTO.toResponse(user) });
   } catch (error) {
@@ -1015,12 +1023,16 @@ const verifyTwoFactorAuth = asyncHandler(async (req, res) => {
     // Clear the OTP from redis
     await redis.del(`two_factor_otp:${email}`);
 
-    // Populate services for consistency
+    // Update metrics and populate services
+    await updateUserMetrics(user._id);
     await user.populate('services');
+    
+    // Refresh user to get updated metrics
+    const updatedUser = await User.findById(user._id).populate('services');
     
     res.status(200).json({
       success: true,
-      ...UserDTO.toResponse(user),
+      ...UserDTO.toResponse(updatedUser),
       accessToken,
       refreshToken,
       message: "Two-factor authentication successful",

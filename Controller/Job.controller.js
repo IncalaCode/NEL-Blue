@@ -1,6 +1,7 @@
 const Job = require("../Models/Job.model");
 const JobApplication = require("../Models/JobApplication.model");
 const asyncHandler = require("express-async-handler");
+const { updateUserMetrics } = require("../utils/updateMetrics");
 
 const createJob = asyncHandler(async (req, res) => {
   const { serviceId, ratePerHour, location, skills, description, duration, appointmentDate, appointmentTime } = req.body;
@@ -278,6 +279,10 @@ const acceptApplicant = asyncHandler(async (req, res) => {
     status: "Confirmed",
     jobId: job._id
   });
+
+  // Update metrics for both client and professional
+  await updateUserMetrics(job.createdBy);
+  await updateUserMetrics(req.params.applicantId);
 
   res.status(200).json({ success: true, message: "Applicant accepted" });
 });

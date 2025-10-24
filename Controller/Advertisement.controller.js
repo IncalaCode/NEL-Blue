@@ -1,5 +1,6 @@
 const Advertisement = require("../Models/Advertisement.model");
 const asyncHandler = require("express-async-handler");
+const { updateUserMetrics } = require("../utils/updateMetrics");
 
 const createAdvertisement = asyncHandler(async (req, res) => {
   const { serviceId, price, location, skills, description, available } = req.body;
@@ -17,6 +18,9 @@ const createAdvertisement = asyncHandler(async (req, res) => {
     description,
     available: available !== undefined ? available : true
   });
+
+  // Update user metrics
+  await updateUserMetrics(req.user._id);
 
   res.status(201).json({ success: true, message: "Advertisement created successfully", advertisement });
 });
@@ -73,6 +77,10 @@ const deleteAdvertisement = asyncHandler(async (req, res) => {
   }
 
   await Advertisement.findByIdAndDelete(req.params.id);
+  
+  // Update user metrics
+  await updateUserMetrics(req.user._id);
+  
   res.status(200).json({ success: true, message: "Advertisement deleted" });
 });
 

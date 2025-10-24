@@ -67,6 +67,12 @@ const userSchema = mongoose.Schema(
     resetPasswordToken: { type: String },
     resetPasswordExpires: { type: Date },
     stripeVerificationSessionId: { type: String },
+    metrics: {
+      completedAppointments: { type: Number, default: 0 },
+      activeAppointments: { type: Number, default: 0 },
+      advertisedServices: { type: Number, default: 0 },
+      allAppointments: { type: Number, default: 0 }
+    }
   },
   {
     timestamps: true,
