@@ -26,6 +26,12 @@ class UserDTO {
       isClientIdentitySubmited: user.isClientIdentitySubmited,
       isProfessionalKycVerified: user.isProfessionalKycVerified,
       isProfessionalKycSubmited: user.isProfessionalKycSubmited,
+      metrics: user.metrics || {
+        completedAppointments: 0,
+        activeAppointments: 0,
+        advertisedServices: 0,
+        allAppointments: 0
+      },
     };
   }
 
@@ -49,6 +55,12 @@ class UserDTO {
       isClientIdentitySubmited: user.isClientIdentitySubmited,
       isProfessionalKycVerified: user.isProfessionalKycVerified,
       isProfessionalKycSubmited: user.isProfessionalKycSubmited,
+      metrics: user.metrics || {
+        completedAppointments: 0,
+        activeAppointments: 0,
+        advertisedServices: 0,
+        allAppointments: 0
+      },
     };
   }
 }
