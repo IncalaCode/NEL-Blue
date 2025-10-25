@@ -25,7 +25,7 @@ const AppointmentSchema = mongoose.Schema(
     duration: { type: Number },
     status: {
       type: String,
-      enum: ["Pending", "Confirmed", "Cancelled"],
+      enum: ["Pending", "Confirmed", "Completed", "Cancelled"],
       default: "Pending",
     },
     totalPrice: { type: Number },

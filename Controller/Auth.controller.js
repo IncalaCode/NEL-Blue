@@ -447,15 +447,59 @@ const handleWebhook = asyncHandler(async (req, res) => {
       await User.findByIdAndUpdate(user._id, update);
       console.log(`✅ Updated verification status for ${user.email}`);
     } else if (event.type === "payment_intent.succeeded") {
-      const payment = event.data.object;
+      const paymentIntent = event.data.object;
       console.log(
-        `💰 Payment succeeded: ${payment.id}, Amount: ${payment.amount}`
+        `💰 Payment succeeded: ${paymentIntent.id}, Amount: ${paymentIntent.amount}`
       );
+      
+      // Update payment and appointment status
+      const payment = await Payment.findOneAndUpdate(
+        { paymentIntentId: paymentIntent.id },
+        { 
+          status: "paid",
+          paymentMethod: paymentIntent.payment_method_types?.[0] || "card",
+          transactionId: paymentIntent.id
+        },
+        { new: true }
+      );
+      
+      if (payment) {
+        // Update appointment status to Confirmed when payment succeeds
+        const Appointment = require("../Models/Appointement.model");
+        await Appointment.findByIdAndUpdate(
+          payment.appointment,
+          { status: "Confirmed" }
+        );
+        
+        // Update metrics for both users
+        await updateUserMetrics(payment.client);
+        await updateUserMetrics(payment.professional);
+        
+        console.log(`✅ Appointment ${payment.appointment} confirmed after payment`);
+      }
     } else if (event.type === "payment_intent.payment_failed") {
-      const payment = event.data.object;
+      const failedIntent = event.data.object;
       console.log(
-        `❌ Payment failed: ${payment.id}, Reason: ${payment.last_payment_error?.message}`
+        `❌ Payment failed: ${failedIntent.id}, Reason: ${failedIntent.last_payment_error?.message}`
       );
+      
+      // Update payment status and cancel appointment
+      const payment = await Payment.findOneAndUpdate(
+        { paymentIntentId: failedIntent.id },
+        { 
+          status: "failed",
+          transactionId: failedIntent.id
+        }
+      );
+      
+      if (payment) {
+        const Appointment = require("../Models/Appointement.model");
+        await Appointment.findByIdAndUpdate(
+          payment.appointment,
+          { status: "Cancelled" }
+        );
+        console.log(`❌ Appointment ${payment.appointment} cancelled due to payment failure`);
+      }
     } else {
       console.log(`⚠️ Unhandled event type: ${event.type}`);
     }
