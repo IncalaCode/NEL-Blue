@@ -757,7 +757,7 @@ const logout = asyncHandler(async (req, res) => {
 
 // Refresh Token
 const refreshToken = asyncHandler(async (req, res) => {
-  const refreshToken = req.cookies.refreshToken;
+  const { refreshToken } = req.body;
   try {
     if (!refreshToken) {
       return res.status(401).json({ success: false, message: "No token found" });
@@ -768,13 +768,11 @@ const refreshToken = asyncHandler(async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid refresh token" });
     }
     const { accessToken } = await generateToken(decoded.userId);
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 15 * 60 * 1000,
+    res.status(200).json({ 
+      success: true, 
+      accessToken,
+      message: "Access token refreshed" 
     });
-    res.status(200).json({ success: true, message: "Access token refreshed" });
   } catch (error) {
     console.error("Refresh Token Error:", error);
     res.status(500).json({ success: false, message: error.message || "Something went wrong" });

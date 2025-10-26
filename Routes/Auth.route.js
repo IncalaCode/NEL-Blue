@@ -755,12 +755,26 @@ router.post("/logout", logout);
  *     summary: Refresh the access token using a valid refresh token
  *     tags: [Authentication]
  *     description: Generates a new access token if the provided refresh token is valid and matches the one stored in Redis.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
+ *                 example: "jwt-refresh-token"
  *     responses:
  *       200:
  *         description: Access token refreshed successfully
  *         content:
  *           application/json:
  *             example:
+ *               success: true
+ *               accessToken: "new-jwt-access-token"
  *               message: "Access token refreshed"
  *       401:
  *         description: Unauthorized or invalid token
@@ -770,16 +784,19 @@ router.post("/logout", logout);
  *               NoToken:
  *                 summary: No token found
  *                 value:
+ *                   success: false
  *                   message: "No token found"
  *               InvalidToken:
  *                 summary: Invalid refresh token
  *                 value:
+ *                   success: false
  *                   message: "Invalid refresh token"
  *       500:
  *         description: Server error
  *         content:
  *           application/json:
  *             example:
+ *               success: false
  *               message: "Something went wrong"
  */
 router.post("/refreshtoken", refreshToken);
