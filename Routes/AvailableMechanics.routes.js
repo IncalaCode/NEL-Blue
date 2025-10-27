@@ -158,14 +158,14 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  * @swagger
  * /availableProfessional/getProfessionalSearch:
  *   get:
- *     summary: Search professionals by name, service, price range, or location
+ *     summary: Search professionals by name, service, badge, location, or price range
  *     tags: [AvailableProfessional]
  *     parameters:
  *       - in: query
  *         name: query
  *         schema:
  *           type: string
- *         description: Search keyword for professional's firstName, lastName, or services
+ *         description: Search keyword for professional's firstName or lastName
  *       - in: query
  *         name: serviceName
  *         schema:
@@ -175,7 +175,33 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  *         name: isVerified
  *         schema:
  *           type: boolean
- *         description: Filter by verified professionals
+ *         description: Filter by KYC verified professionals
+ *       - in: query
+ *         name: badge
+ *         schema:
+ *           type: string
+ *           enum: [verified, kyc, identity, payout]
+ *         description: Filter by badge type (verified/kyc, identity, payout)
+ *       - in: query
+ *         name: location
+ *         schema:
+ *           type: string
+ *         description: Search in city, state, country, or address
+ *       - in: query
+ *         name: city
+ *         schema:
+ *           type: string
+ *         description: Filter by specific city
+ *       - in: query
+ *         name: state
+ *         schema:
+ *           type: string
+ *         description: Filter by specific state
+ *       - in: query
+ *         name: country
+ *         schema:
+ *           type: string
+ *         description: Filter by specific country
  *       - in: query
  *         name: minPrice
  *         schema:

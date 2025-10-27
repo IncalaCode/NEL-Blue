@@ -108,11 +108,25 @@ const getProfessionalsByCategory = asyncHandler(async (req, res) => {
 
 const searchProfessionals = asyncHandler(async (req, res) => {
   try {
-    const { query, serviceName, isVerified, minPrice, maxPrice, page = 1, limit = 10 } = req.query;
+    const { 
+      query, 
+      serviceName, 
+      isVerified, 
+      badge,
+      location,
+      city,
+      state,
+      country,
+      minPrice, 
+      maxPrice, 
+      page = 1, 
+      limit = 10 
+    } = req.query;
     const skip = (page - 1) * limit;
 
     let filter = { role: "Professional", availabilty: "Available" };
 
+    // Text search in name
     if (query) {
       filter.$or = [
         { firstName: { $regex: query, $options: "i" } },
@@ -120,10 +134,49 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       ];
     }
 
+    // Badge/Verification filters (optional)
     if (isVerified !== undefined) {
       filter.isProfessionalKycVerified = isVerified === "true";
     }
+    
+    if (badge) {
+      switch (badge.toLowerCase()) {
+        case "verified":
+        case "kyc":
+          filter.isProfessionalKycVerified = true;
+          break;
+        case "identity":
+          filter.identityVerified = true;
+          break;
+        case "payout":
+          filter.payoutStatus = "Enabled";
+          break;
+      }
+    }
 
+    // Location filters (optional)
+    if (location) {
+      filter.$or = [
+        { city: { $regex: location, $options: "i" } },
+        { state: { $regex: location, $options: "i" } },
+        { country: { $regex: location, $options: "i" } },
+        { address: { $regex: location, $options: "i" } }
+      ];
+    }
+    
+    if (city) {
+      filter.city = { $regex: city, $options: "i" };
+    }
+    
+    if (state) {
+      filter.state = { $regex: state, $options: "i" };
+    }
+    
+    if (country) {
+      filter.country = { $regex: country, $options: "i" };
+    }
+
+    // Service filter
     if (serviceName) {
       const service = await Service.findOne({ serviceName });
       if (service) {
@@ -136,6 +189,7 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       .skip(skip)
       .limit(parseInt(limit));
 
+    // Price range filter (applied after query for service-specific pricing)
     if (minPrice || maxPrice) {
       professionals = professionals.filter(prof => 
         prof.services.some(s => 
@@ -145,25 +199,56 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       );
     }
 
+    // Add rating and feedback data
+    const professionalsWithDetails = await Promise.all(
+      professionals.map(async (prof) => {
+        const feedbacks = await Feedback.find({ userId: prof._id });
+        const avgRating = feedbacks.length > 0
+          ? (feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length).toFixed(1)
+          : null;
+
+        return {
+          ...UserDTO.toResponse(prof),
+          averageRating: avgRating,
+          totalFeedbacks: feedbacks.length,
+          badges: {
+            kycVerified: prof.isProfessionalKycVerified,
+            identityVerified: prof.identityVerified,
+            payoutEnabled: prof.payoutStatus === "Enabled"
+          }
+        };
+      })
+    );
+
     const total = await User.countDocuments(filter);
 
     res.status(200).json({
       success: true,
       message: "Professionals retrieved successfully",
+      filtersApplied: {
+        query: query || null,
+        serviceName: serviceName || null,
+        badge: badge || null,
+        location: location || null,
+        city: city || null,
+        state: state || null,
+        country: country || null,
+        priceRange: (minPrice || maxPrice) ? { min: minPrice, max: maxPrice } : null
+      },
       locationUsed: {
         lat: null,
         long: null,
-        country: null,
-        region: null,
-        city: null
+        country: country || null,
+        region: state || null,
+        city: city || null
       },
       pagination: {
-        total: professionals.length,
+        total: professionalsWithDetails.length,
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: Math.ceil(professionals.length / limit)
+        totalPages: Math.ceil(professionalsWithDetails.length / limit)
       },
-      data: professionals.map(p => UserDTO.toResponse(p))
+      data: professionalsWithDetails
     });
   } catch (error) {
     console.error("Search Professionals Error:", error);
