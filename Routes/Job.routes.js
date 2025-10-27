@@ -203,9 +203,49 @@ router.get("/:id", protectRoute, getJobById);
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               serviceId:
+ *                 type: string
+ *               ratePerHour:
+ *                 type: number
+ *               location:
+ *                 type: string
+ *               skills:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               description:
+ *                 type: string
+ *               duration:
+ *                 type: number
+ *               appointmentDate:
+ *                 type: string
+ *               appointmentTime:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Job updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 job:
+ *                   type: object
+ *       400:
+ *         description: Cannot edit job that is in progress or completed
+ *       403:
+ *         description: Not authorized
  *       404:
  *         description: Job not found
  */

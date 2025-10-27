@@ -65,6 +65,63 @@ const getMyAdvertisements = asyncHandler(async (req, res) => {
   });
 });
 
+const updateAdvertisement = asyncHandler(async (req, res) => {
+  const advertisement = await Advertisement.findById(req.params.id);
+
+  if (!advertisement) {
+    return res.status(404).json({ success: false, message: "Advertisement not found" });
+  }
+
+  if (advertisement.professionalId.toString() !== req.user._id.toString()) {
+    return res.status(403).json({ success: false, message: "Not authorized" });
+  }
+
+  // Extract allowed fields for update
+  const {
+    serviceId,
+    price,
+    location,
+    skills,
+    description,
+    available
+  } = req.body;
+
+  const updateData = {};
+  if (serviceId) updateData.serviceId = serviceId;
+  if (price !== undefined) updateData.price = price;
+  if (location) updateData.location = location;
+  if (skills) updateData.skills = skills;
+  if (description) updateData.description = description;
+  if (available !== undefined) updateData.available = available;
+
+  const updatedAdvertisement = await Advertisement.findByIdAndUpdate(
+    req.params.id,
+    updateData,
+    { new: true, runValidators: true }
+  ).populate("serviceId").populate("professionalId", "firstName lastName email");
+
+  res.status(200).json({
+    success: true,
+    message: "Advertisement updated successfully",
+    advertisement: updatedAdvertisement
+  });
+});
+
+const getAdvertisementById = asyncHandler(async (req, res) => {
+  const advertisement = await Advertisement.findById(req.params.id)
+    .populate("serviceId")
+    .populate("professionalId", "firstName lastName email");
+
+  if (!advertisement) {
+    return res.status(404).json({ success: false, message: "Advertisement not found" });
+  }
+
+  res.status(200).json({
+    success: true,
+    advertisement
+  });
+});
+
 const deleteAdvertisement = asyncHandler(async (req, res) => {
   const advertisement = await Advertisement.findById(req.params.id);
 
@@ -86,6 +143,8 @@ const deleteAdvertisement = asyncHandler(async (req, res) => {
 
 module.exports = {
   createAdvertisement,
+  updateAdvertisement,
+  getAdvertisementById,
   deleteAdvertisement,
   getAdvertisements,
   getMyAdvertisements

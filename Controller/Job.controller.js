@@ -167,8 +167,47 @@ const updateJob = asyncHandler(async (req, res) => {
     return res.status(403).json({ success: false, message: "Not authorized" });
   }
 
-  const updatedJob = await Job.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.status(200).json(updatedJob);
+  // Prevent editing if job is already in progress or completed
+  if (job.status === "in-progress" || job.status === "completed") {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Cannot edit job that is in progress or completed" 
+    });
+  }
+
+  // Extract allowed fields for update
+  const {
+    serviceId,
+    ratePerHour,
+    location,
+    skills,
+    description,
+    duration,
+    appointmentDate,
+    appointmentTime
+  } = req.body;
+
+  const updateData = {};
+  if (serviceId) updateData.serviceId = serviceId;
+  if (ratePerHour) updateData.ratePerHour = ratePerHour;
+  if (location) updateData.location = location;
+  if (skills) updateData.skills = skills;
+  if (description) updateData.description = description;
+  if (duration) updateData.duration = duration;
+  if (appointmentDate) updateData.appointmentDate = appointmentDate;
+  if (appointmentTime) updateData.appointmentTime = appointmentTime;
+
+  const updatedJob = await Job.findByIdAndUpdate(
+    req.params.id, 
+    updateData, 
+    { new: true, runValidators: true }
+  ).populate("serviceId").populate("createdBy", "firstName lastName email");
+
+  res.status(200).json({
+    success: true,
+    message: "Job updated successfully",
+    job: updatedJob
+  });
 });
 
 const deleteJob = asyncHandler(async (req, res) => {
