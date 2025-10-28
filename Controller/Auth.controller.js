@@ -1226,17 +1226,19 @@ const switchRole = asyncHandler(async (req, res) => {
       });
     }
     user.role = "Professional";
+    user.availabilty = "Available"; // ✅ Set availability when switching to Professional
     await user.save();
     return res.status(200).json({
       success: true,
       message: "Role changed to Professional. Please complete KYC.",
-      data: { role: user.role },
+      data: { role: user.role, availability: user.availabilty },
     });
   }
 
   if (user.role === "Professional") {
     // Professional → Client
     user.role = "Client";
+    user.availabilty = "Unavailable"; // ✅ Set unavailable when switching to Client
     await user.save();
     return res.status(200).json({
       success: true,
