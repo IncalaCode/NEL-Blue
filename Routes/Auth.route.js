@@ -11,6 +11,7 @@ const {
   updateProfessionalKyc,
   checkVerification,
   toggleAvailability,
+  debugUserStatus,
   handleWebhook,
   uploadCertificate,
   login,

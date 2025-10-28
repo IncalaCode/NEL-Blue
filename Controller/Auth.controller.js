@@ -1207,45 +1207,62 @@ const adminLogin = asyncHandler(async (req, res) => {
 const switchRole = asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
-  const user = await User.findById(userId);
+    const user = await User.findById(userId).populate('services');
 
-  if (!user) {
-    return res.status(404).json({ success: false, message: "User not found" });
-  }
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
 
-  if (user.role === "SuperAdmin") {
-    return res.status(403).json({ success: false, message: "SuperAdmin role cannot be changed" });
-  }
+    if (user.role === "SuperAdmin") {
+      return res.status(403).json({ success: false, message: "SuperAdmin role cannot be changed" });
+    }
 
-  if (user.role === "Client") {
-    // Client → Professional: check services
-    if (!user.services || user.services.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Service is null",
+    if (user.role === "Client") {
+      // Client → Professional: check services
+      if (!user.services || user.services.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "You need to add at least one service to become a Professional. Please update your profile first.",
+        });
+      }
+      user.role = "Professional";
+      // Keep current availability or set to Available if not set
+      if (!user.availabilty) {
+        user.availabilty = "Available";
+      }
+      await user.save();
+      
+      console.log(`✅ User ${user.email} switched to Professional with availability: ${user.availabilty}`);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Role changed to Professional.",
+        data: { 
+          role: user.role, 
+          availability: user.availabilty,
+          services: user.services
+        },
       });
     }
-    user.role = "Professional";
-    user.availabilty = "Available"; // ✅ Set availability when switching to Professional
-    await user.save();
-    return res.status(200).json({
-      success: true,
-      message: "Role changed to Professional. Please complete KYC.",
-      data: { role: user.role, availability: user.availabilty },
-    });
-  }
 
-  if (user.role === "Professional") {
-    // Professional → Client
-    user.role = "Client";
-    user.availabilty = "Unavailable"; // ✅ Set unavailable when switching to Client
-    await user.save();
-    return res.status(200).json({
-      success: true,
-      message: "Role changed to Client.",
-      data: { role: user.role },
-    });
-  }
+    if (user.role === "Professional") {
+      // Professional → Client: KEEP availability unchanged
+      user.role = "Client";
+      // Don't change availability - let them stay available if they want
+      await user.save();
+      
+      console.log(`✅ User ${user.email} switched to Client with availability: ${user.availabilty}`);
+      
+      return res.status(200).json({
+        success: true,
+        message: "Role changed to Client. You can still offer services.",
+        data: { 
+          role: user.role, 
+          availability: user.availabilty,
+          services: user.services
+        },
+      });
+    }
   } catch (error) {
     console.error("Switch Role Error:", error);
     res.status(500).json({ success: false, message: "Something went wrong" });
@@ -1359,6 +1376,8 @@ const toggleAvailability = asyncHandler(async (req, res) => {
     user.availabilty = user.availabilty === "Available" ? "Unavailable" : "Available";
     await user.save();
     
+    console.log(`✅ User ${user.email} availability toggled to: ${user.availabilty}`);
+    
     res.status(200).json({
       success: true,
       message: `Availability switched to ${user.availabilty}`,
@@ -1366,6 +1385,38 @@ const toggleAvailability = asyncHandler(async (req, res) => {
     });
   } catch (error) {
     console.error("Toggle Availability Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+// Debug endpoint to check user status
+const debugUserStatus = asyncHandler(async (req, res) => {
+  try {
+    const { email } = req.params;
+    const user = await User.findOne({ email }).populate('services');
+    
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
+    res.status(200).json({
+      success: true,
+      debug: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+        availability: user.availabilty,
+        services: user.services,
+        servicesCount: user.services?.length || 0,
+        isProfessionalKycSubmited: user.isProfessionalKycSubmited,
+        isProfessionalKycVerified: user.isProfessionalKycVerified,
+        status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    console.error("Debug User Status Error:", error);
     res.status(500).json({ success: false, message: "Something went wrong" });
   }
 });

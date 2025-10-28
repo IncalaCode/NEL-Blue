@@ -9,13 +9,19 @@ const getAvailableMechanics = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10 } = req.query;
     const skip = (page - 1) * limit;
 
-    const mechanics = await User.find({ role: "Professional", availabilty: "Available" })
+    const mechanics = await User.find({ 
+      availabilty: "Available",
+      services: { $exists: true, $ne: [] }
+    })
       .select("-password -resetPasswordToken -resetPasswordExpires")
       .populate("services")
       .skip(skip)
       .limit(parseInt(limit));
 
-    const total = await User.countDocuments({ role: "Professional", availabilty: "Available" });
+    const total = await User.countDocuments({ 
+      availabilty: "Available",
+      services: { $exists: true, $ne: [] }
+    });
 
     const mechanicDetails = await Promise.all(
       mechanics.map(async (mechanic) => {
@@ -70,16 +76,16 @@ const getProfessionalsByCategory = asyncHandler(async (req, res) => {
     }
 
     const professionals = await User.find({
-      role: "Professional",
-      services: service._id
+      services: service._id,
+      availabilty: "Available"
     })
       .populate("services")
       .skip(skip)
       .limit(parseInt(limit));
 
     const total = await User.countDocuments({
-      role: "Professional",
-      services: service._id
+      services: service._id,
+      availabilty: "Available"
     });
 
     res.status(200).json({
@@ -124,7 +130,10 @@ const searchProfessionals = asyncHandler(async (req, res) => {
     } = req.query;
     const skip = (page - 1) * limit;
 
-    let filter = { role: "Professional", availabilty: "Available" };
+    let filter = { 
+      availabilty: "Available",
+      services: { $exists: true, $ne: [] }
+    };
 
     // Text search in name
     if (query) {
