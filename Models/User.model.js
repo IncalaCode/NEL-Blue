@@ -51,6 +51,17 @@ const userSchema = mongoose.Schema(
     specialization: { type: [String] },
     address: { type: String },
     zipCode: { type: String },
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point'
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        index: '2dsphere'
+      }
+    },
     availabilty: { type: String },
     certificates: { type: [String], default: [] },
     stripeAccountId: { type: String }, // connected account for professional
@@ -81,6 +92,7 @@ const userSchema = mongoose.Schema(
       { email: 1 }, // Add index for email since it's used for lookups
       { googleId: 1 },
       { phoneNumber: 1 },
+      { "location": "2dsphere" } // Geospatial index for location-based queries
     ],
   }
 );

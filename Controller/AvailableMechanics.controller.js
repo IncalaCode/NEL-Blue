@@ -123,6 +123,9 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       city,
       state,
       country,
+      latitude,
+      longitude,
+      radius = 10,
       minPrice, 
       maxPrice, 
       page = 1, 
@@ -134,6 +137,46 @@ const searchProfessionals = asyncHandler(async (req, res) => {
       availabilty: "Available",
       services: { $exists: true, $ne: [] }
     };
+
+    // Geospatial search (optional) - takes priority over text location
+    if (latitude && longitude) {
+      const lat = parseFloat(latitude);
+      const lng = parseFloat(longitude);
+      const radiusInMeters = parseFloat(radius) * 1000;
+      
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        filter.location = {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [lng, lat]
+            },
+            $maxDistance: radiusInMeters
+          }
+        };
+      }
+    }
+    // Text-based location search (fallback)
+    else if (location) {
+      filter.$or = [
+        { city: { $regex: location, $options: "i" } },
+        { state: { $regex: location, $options: "i" } },
+        { country: { $regex: location, $options: "i" } },
+        { address: { $regex: location, $options: "i" } }
+      ];
+    }
+    
+    if (city) {
+      filter.city = { $regex: city, $options: "i" };
+    }
+    
+    if (state) {
+      filter.state = { $regex: state, $options: "i" };
+    }
+    
+    if (country) {
+      filter.country = { $regex: country, $options: "i" };
+    }
 
     // Text search in name
     if (query) {
@@ -161,28 +204,6 @@ const searchProfessionals = asyncHandler(async (req, res) => {
           filter.payoutStatus = "Enabled";
           break;
       }
-    }
-
-    // Location filters (optional)
-    if (location) {
-      filter.$or = [
-        { city: { $regex: location, $options: "i" } },
-        { state: { $regex: location, $options: "i" } },
-        { country: { $regex: location, $options: "i" } },
-        { address: { $regex: location, $options: "i" } }
-      ];
-    }
-    
-    if (city) {
-      filter.city = { $regex: city, $options: "i" };
-    }
-    
-    if (state) {
-      filter.state = { $regex: state, $options: "i" };
-    }
-    
-    if (country) {
-      filter.country = { $regex: country, $options: "i" };
     }
 
     // Service filter
@@ -216,10 +237,24 @@ const searchProfessionals = asyncHandler(async (req, res) => {
           ? (feedbacks.reduce((sum, f) => sum + f.rating, 0) / feedbacks.length).toFixed(1)
           : null;
 
+        let distance = null;
+        if (latitude && longitude && prof.location?.coordinates) {
+          const [profLng, profLat] = prof.location.coordinates;
+          const R = 6371;
+          const dLat = (profLat - parseFloat(latitude)) * Math.PI / 180;
+          const dLng = (profLng - parseFloat(longitude)) * Math.PI / 180;
+          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                   Math.cos(parseFloat(latitude) * Math.PI / 180) * Math.cos(profLat * Math.PI / 180) *
+                   Math.sin(dLng/2) * Math.sin(dLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          distance = (R * c).toFixed(2);
+        }
+
         return {
           ...UserDTO.toResponse(prof),
           averageRating: avgRating,
           totalFeedbacks: feedbacks.length,
+          distance: distance,
           badges: {
             kycVerified: prof.isProfessionalKycVerified,
             identityVerified: prof.identityVerified,
@@ -242,11 +277,13 @@ const searchProfessionals = asyncHandler(async (req, res) => {
         city: city || null,
         state: state || null,
         country: country || null,
+        coordinates: (latitude && longitude) ? { latitude, longitude, radius } : null,
         priceRange: (minPrice || maxPrice) ? { min: minPrice, max: maxPrice } : null
       },
       locationUsed: {
-        lat: null,
-        long: null,
+        lat: latitude ? parseFloat(latitude) : null,
+        long: longitude ? parseFloat(longitude) : null,
+        radius: (latitude && longitude) ? parseFloat(radius) : null,
         country: country || null,
         region: state || null,
         city: city || null

@@ -1357,6 +1357,47 @@ const checkVerification = asyncHandler(async (req, res) => {
   }
 });
 
+const updateLocation = asyncHandler(async (req, res) => {
+  try {
+    const { longitude, latitude } = req.body;
+    
+    if (!longitude || !latitude) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Longitude and latitude are required" 
+      });
+    }
+    
+    if (longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid coordinates" 
+      });
+    }
+    
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+    
+    user.location = {
+      type: 'Point',
+      coordinates: [parseFloat(longitude), parseFloat(latitude)]
+    };
+    
+    await user.save();
+    
+    res.status(200).json({
+      success: true,
+      message: "Location updated successfully",
+      location: user.location
+    });
+  } catch (error) {
+    console.error("Update Location Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
 const toggleAvailability = asyncHandler(async (req, res) => {
   try {
     const user = await User.findById(req.user._id).populate('services');
@@ -1427,6 +1468,7 @@ module.exports = {
   switchRole,
   updateProfessionalKyc,
   checkVerification,
+  updateLocation,
   toggleAvailability,
   adminLogin,
   deleteMyAccount,

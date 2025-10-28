@@ -10,6 +10,7 @@ const {
   signup,
   updateProfessionalKyc,
   checkVerification,
+  updateLocation,
   toggleAvailability,
   debugUserStatus,
   handleWebhook,
@@ -1792,5 +1793,65 @@ router.put(
  *                   example: User not found
  */
 router.put("/availabilty", protectRoute, toggleAvailability);
+
+/**
+ * @swagger
+ * /auth/location:
+ *   put:
+ *     summary: Update user location coordinates
+ *     tags: [User]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - longitude
+ *               - latitude
+ *             properties:
+ *               longitude:
+ *                 type: number
+ *                 minimum: -180
+ *                 maximum: 180
+ *                 example: -74.006
+ *               latitude:
+ *                 type: number
+ *                 minimum: -90
+ *                 maximum: 90
+ *                 example: 40.7128
+ *     responses:
+ *       200:
+ *         description: Location updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Location updated successfully
+ *                 location:
+ *                   type: object
+ *                   properties:
+ *                     type:
+ *                       type: string
+ *                       example: Point
+ *                     coordinates:
+ *                       type: array
+ *                       items:
+ *                         type: number
+ *                       example: [-74.006, 40.7128]
+ *       400:
+ *         description: Invalid coordinates
+ *       404:
+ *         description: User not found
+ */
+router.put("/location", protectRoute, updateLocation);
 
 module.exports = router;
