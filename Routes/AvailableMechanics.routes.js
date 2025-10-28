@@ -224,7 +224,22 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  *           type: integer
  *           default: 10
  *         description: Number of records per page
-
+       - in: query
+         name: latitude
+         schema:
+           type: number
+         description: Latitude for geospatial search (-90 to 90)
+       - in: query
+         name: longitude
+         schema:
+           type: number
+         description: Longitude for geospatial search (-180 to 180)
+       - in: query
+         name: radius
+         schema:
+           type: number
+           default: 10
+         description: Search radius in kilometers (default 10km)
  *     responses:
  *       200:
  *         description: Successfully retrieved professionals matching the search
