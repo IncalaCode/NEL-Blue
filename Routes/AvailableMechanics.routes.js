@@ -158,91 +158,54 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  * @swagger
  * /availableProfessional/getProfessionalSearch:
  *   get:
- *     summary: Search professionals by name, service, badge, location, or price range
+ *     summary: Search professionals with geospatial and filter support
  *     tags: [AvailableProfessional]
  *     parameters:
- *       - in: query
- *         name: query
+ *       - name: query
+ *         in: query
  *         schema:
  *           type: string
- *         description: Search keyword for professional's firstName or lastName
- *       - in: query
- *         name: serviceName
+ *         description: Search by name
+ *       - name: serviceName
+ *         in: query
  *         schema:
  *           type: string
- *         description: Filter by service name
- *       - in: query
- *         name: isVerified
- *         schema:
- *           type: boolean
- *         description: Filter by KYC verified professionals
- *       - in: query
- *         name: badge
+ *         description: Filter by service
+ *       - name: badge
+ *         in: query
  *         schema:
  *           type: string
  *           enum: [verified, kyc, identity, payout]
- *         description: Filter by badge type (verified/kyc, identity, payout)
- *       - in: query
- *         name: location
- *         schema:
- *           type: string
- *         description: Search in city, state, country, or address
- *       - in: query
- *         name: city
- *         schema:
- *           type: string
- *         description: Filter by specific city
- *       - in: query
- *         name: state
- *         schema:
- *           type: string
- *         description: Filter by specific state
- *       - in: query
- *         name: country
- *         schema:
- *           type: string
- *         description: Filter by specific country
- *       - in: query
- *         name: minPrice
+ *         description: Filter by badge
+ *       - name: latitude
+ *         in: query
  *         schema:
  *           type: number
- *         description: Minimum price of service
- *       - in: query
- *         name: maxPrice
+ *         description: Latitude for location search
+ *       - name: longitude
+ *         in: query
  *         schema:
  *           type: number
- *         description: Maximum price of service
- *       - in: query
- *         name: page
+ *         description: Longitude for location search
+ *       - name: radius
+ *         in: query
+ *         schema:
+ *           type: number
+ *           default: 10
+ *         description: Search radius in km
+ *       - name: page
+ *         in: query
  *         schema:
  *           type: integer
  *           default: 1
- *         description: Page number for pagination
- *       - in: query
- *         name: limit
+ *       - name: limit
+ *         in: query
  *         schema:
  *           type: integer
  *           default: 10
- *         description: Number of records per page
-       - in: query
-         name: latitude
-         schema:
-           type: number
-         description: Latitude for geospatial search (-90 to 90)
-       - in: query
-         name: longitude
-         schema:
-           type: number
-         description: Longitude for geospatial search (-180 to 180)
-       - in: query
-         name: radius
-         schema:
-           type: number
-           default: 10
-         description: Search radius in kilometers (default 10km)
  *     responses:
  *       200:
- *         description: Successfully retrieved professionals matching the search
+ *         description: Search results
  *         content:
  *           application/json:
  *             schema:
@@ -250,45 +213,12 @@ router.get("/getProfessionaWithCatagories", getProfessionalsByCategory);
  *               properties:
  *                 success:
  *                   type: boolean
- *                 message:
- *                   type: string
- *                 locationUsed:
- *                   type: object
- *                   properties:
- *                     lat:
- *                       type: number
- *                       nullable: true
- *                     long:
- *                       type: number
- *                       nullable: true
- *                     country:
- *                       type: string
- *                       nullable: true
- *                     region:
- *                       type: string
- *                       nullable: true
- *                     city:
- *                       type: string
- *                       nullable: true
- *                 pagination:
- *                   type: object
- *                   properties:
- *                     total:
- *                       type: integer
- *                     page:
- *                       type: integer
- *                     limit:
- *                       type: integer
- *                     totalPages:
- *                       type: integer
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
- *       400:
- *         description: Bad request
  *       500:
- *         description: Internal server error
+ *         description: Server error
  */
 router.get("/getProfessionalSearch", searchProfessionals);
 

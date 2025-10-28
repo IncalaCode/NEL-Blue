@@ -139,12 +139,12 @@ const searchProfessionals = asyncHandler(async (req, res) => {
     };
 
     // Geospatial search (optional) - takes priority over text location
-    if (latitude && longitude) {
+    if (latitude && longitude && latitude !== '0' && longitude !== '0' && latitude !== 'null' && longitude !== 'null') {
       const lat = parseFloat(latitude);
       const lng = parseFloat(longitude);
       const radiusInMeters = parseFloat(radius) * 1000;
       
-      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && lat !== 0 && lng !== 0) {
         filter.location = {
           $near: {
             $geometry: {
@@ -238,16 +238,20 @@ const searchProfessionals = asyncHandler(async (req, res) => {
           : null;
 
         let distance = null;
-        if (latitude && longitude && prof.location?.coordinates) {
-          const [profLng, profLat] = prof.location.coordinates;
-          const R = 6371;
-          const dLat = (profLat - parseFloat(latitude)) * Math.PI / 180;
-          const dLng = (profLng - parseFloat(longitude)) * Math.PI / 180;
-          const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                   Math.cos(parseFloat(latitude) * Math.PI / 180) * Math.cos(profLat * Math.PI / 180) *
-                   Math.sin(dLng/2) * Math.sin(dLng/2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-          distance = (R * c).toFixed(2);
+        if (latitude && longitude && latitude !== '0' && longitude !== '0' && latitude !== 'null' && longitude !== 'null' && prof.location?.coordinates) {
+          const lat = parseFloat(latitude);
+          const lng = parseFloat(longitude);
+          if (lat !== 0 && lng !== 0) {
+            const [profLng, profLat] = prof.location.coordinates;
+            const R = 6371;
+            const dLat = (profLat - lat) * Math.PI / 180;
+            const dLng = (profLng - lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                     Math.cos(lat * Math.PI / 180) * Math.cos(profLat * Math.PI / 180) *
+                     Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            distance = (R * c).toFixed(2);
+          }
         }
 
         return {
@@ -277,13 +281,13 @@ const searchProfessionals = asyncHandler(async (req, res) => {
         city: city || null,
         state: state || null,
         country: country || null,
-        coordinates: (latitude && longitude) ? { latitude, longitude, radius } : null,
+        coordinates: (latitude && longitude && latitude !== '0' && longitude !== '0' && latitude !== 'null' && longitude !== 'null') ? { latitude, longitude, radius } : null,
         priceRange: (minPrice || maxPrice) ? { min: minPrice, max: maxPrice } : null
       },
       locationUsed: {
-        lat: latitude ? parseFloat(latitude) : null,
-        long: longitude ? parseFloat(longitude) : null,
-        radius: (latitude && longitude) ? parseFloat(radius) : null,
+        lat: (latitude && latitude !== '0' && latitude !== 'null') ? parseFloat(latitude) : null,
+        long: (longitude && longitude !== '0' && longitude !== 'null') ? parseFloat(longitude) : null,
+        radius: (latitude && longitude && latitude !== '0' && longitude !== '0' && latitude !== 'null' && longitude !== 'null') ? parseFloat(radius) : null,
         country: country || null,
         region: state || null,
         city: city || null
