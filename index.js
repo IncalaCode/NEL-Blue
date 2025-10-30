@@ -23,13 +23,15 @@ db();
  * @swagger
  * /auth/webhook:
  *   post:
- *     summary: Stripe Payment Webhook endpoint
+ *     summary: Stripe Webhook endpoint
  *     tags: [Webhook]
  *     description: |
- *       Handles Stripe payment webhook events including:
+ *       Handles Stripe webhook events including:
  *       - `payment_intent.succeeded`
  *       - `payment_intent.payment_failed`
- *       Note: Identity verification is now handled through custom endpoints.
+ *       - `identity.verification_session.verified`
+ *       - `identity.verification_session.requires_input`
+ *       - `identity.verification_session.canceled`
  *     requestBody:
  *       required: true
  *       content:
@@ -39,23 +41,16 @@ db();
  *             example:
  *               id: evt_test_webhook
  *               object: event
- *               type: payment_intent.succeeded
+ *               type: identity.verification_session.verified
  *               data:
  *                 object:
- *                   id: pi_1234567890
- *                   amount: 2000
- *                   status: succeeded
+ *                   id: vs_1RxCATPfjXlwgFldE4wkKIEw
+ *                   status: verified
+ *                   metadata:
+ *                     email: user@example.com
  *     responses:
  *       200:
  *         description: Webhook received successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 received:
- *                   type: boolean
- *                   example: true
  *       500:
  *         description: Webhook processing error
  */

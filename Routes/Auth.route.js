@@ -1280,15 +1280,19 @@ router.post("/verify-2fa", verifyTwoFactorAuth);
  */
 
 router.get("/check-verification", protectRoute, checkVerification);
+router.get("/stripe-verify", (req, res) => {
+  const deepLink = "https://verify.stripe.test/close";
+  res.redirect(deepLink);
+});
 /**
  * @swagger
  * /auth/verify-account:
  *   post:
- *     summary: Initiate custom identity verification
+ *     summary: Create a Stripe identity verification session
  *     tags: [User]
  *     description: |
- *       This endpoint initiates a custom identity verification process for the user.
- *       A verification session is created and stored temporarily for document submission.
+ *       This endpoint creates a Stripe Identity Verification Session for the authenticated user.
+ *       The session details (ID, client secret, and verification URL) are returned to initiate the verification flow.
  *     requestBody:
  *       required: true
  *       content:
@@ -1301,15 +1305,9 @@ router.get("/check-verification", protectRoute, checkVerification);
  *               email:
  *                 type: string
  *                 example: user@example.com
- *               documentType:
- *                 type: string
- *                 example: id_card
- *               documentNumber:
- *                 type: string
- *                 example: ID123456789
  *     responses:
  *       200:
- *         description: Verification session created successfully
+ *         description: Stripe verification session created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1320,24 +1318,29 @@ router.get("/check-verification", protectRoute, checkVerification);
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Verification initiated successfully. Please submit your documents.
+ *                   example: Proceed with Stripe verification in-app.
  *                 verificationSessionId:
  *                   type: string
- *                   example: vs_1234567890_abc123
- *                 status:
+ *                   example: vs_1RxXIuPfjXlwgFldQptvmX6t
+ *                 clientSecret:
  *                   type: string
- *                   example: pending
- *                 requiredDocuments:
- *                   type: array
- *                   items:
- *                     type: string
- *                   example: ["Government issued ID (front)", "Government issued ID (back)"]
- *       400:
- *         description: Email is required
- *       404:
- *         description: User not found
+ *                   example: vs_1RxXIuPfjXlwgFldQptvmX6t_secret_test_xxxxx
+ *                 verificationUrl:
+ *                   type: string
+ *                   example: https://verify.stripe.com/start/vs_12345
  *       500:
- *         description: Server error
+ *         description: Server error while creating Stripe verification session
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: Something went wrong
  */
 router.post("/verify-account", verifyAccount);
 /**
