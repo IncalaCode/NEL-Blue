@@ -36,7 +36,9 @@ const {
   RejectUser,
   deleteUser,
   updateUserRole,
-  switchRole
+  switchRole,
+  submitVerificationDocuments,
+  checkVerificationStatus
 } = require("../Controller/Auth.controller");
 const { Verify } = require("crypto");
 const passport = require("passport");
@@ -1278,20 +1280,15 @@ router.post("/verify-2fa", verifyTwoFactorAuth);
  */
 
 router.get("/check-verification", protectRoute, checkVerification);
-router.get("/stripe-verify", (req, res) => {
-  // Not reading session_id or status
-  const deepLink = "https://verify.stripe.test/close";
-  res.redirect(deepLink);
-});
 /**
  * @swagger
  * /auth/verify-account:
  *   post:
- *     summary: Create a Stripe identity verification session
+ *     summary: Initiate custom identity verification
  *     tags: [User]
  *     description: |
- *       This endpoint creates a Stripe Identity Verification Session for the authenticated user.
- *       The session details (ID, client secret, and verification URL) are returned to initiate the verification flow.
+ *       This endpoint initiates a custom identity verification process for the user.
+ *       A verification session is created and stored temporarily for document submission.
  *     requestBody:
  *       required: true
  *       content:
@@ -1304,9 +1301,15 @@ router.get("/stripe-verify", (req, res) => {
  *               email:
  *                 type: string
  *                 example: user@example.com
+ *               documentType:
+ *                 type: string
+ *                 example: id_card
+ *               documentNumber:
+ *                 type: string
+ *                 example: ID123456789
  *     responses:
  *       200:
- *         description: Stripe verification session created successfully
+ *         description: Verification session created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -1317,29 +1320,24 @@ router.get("/stripe-verify", (req, res) => {
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: Proceed with Stripe verification in-app.
+ *                   example: Verification initiated successfully. Please submit your documents.
  *                 verificationSessionId:
  *                   type: string
- *                   example: vs_1RxXIuPfjXlwgFldQptvmX6t
- *                 clientSecret:
+ *                   example: vs_1234567890_abc123
+ *                 status:
  *                   type: string
- *                   example: vs_1RxXIuPfjXlwgFldQptvmX6t_secret_test_xxxxx
- *                 verificationUrl:
- *                   type: string
- *                   example: https://verify.stripe.com/start/vs_12345
+ *                   example: pending
+ *                 requiredDocuments:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                   example: ["Government issued ID (front)", "Government issued ID (back)"]
+ *       400:
+ *         description: Email is required
+ *       404:
+ *         description: User not found
  *       500:
- *         description: Server error while creating Stripe verification session
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: Something went wrong
+ *         description: Server error
  */
 router.post("/verify-account", verifyAccount);
 /**
@@ -1853,5 +1851,90 @@ router.put("/availabilty", protectRoute, toggleAvailability);
  *         description: User not found
  */
 router.put("/location", protectRoute, updateLocation);
+
+/**
+ * @swagger
+ * /auth/submit-verification:
+ *   post:
+ *     summary: Submit verification documents
+ *     tags: [User]
+ *     description: Submit identity verification documents for review
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - verificationSessionId
+ *             properties:
+ *               verificationSessionId:
+ *                 type: string
+ *                 example: vs_1234567890_abc123
+ *               documentType:
+ *                 type: string
+ *                 example: id_card
+ *               documentNumber:
+ *                 type: string
+ *                 example: ID123456789
+ *               documents:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Upload document images (max 5)
+ *     responses:
+ *       200:
+ *         description: Documents submitted successfully
+ *       400:
+ *         description: Verification session ID required
+ *       404:
+ *         description: Session not found or user not found
+ */
+router.post(
+  "/submit-verification",
+  uploadImages.array("documents", 5),
+  handleFileUploadErrors,
+  submitVerificationDocuments
+);
+
+/**
+ * @swagger
+ * /auth/verification-status/{verificationSessionId}:
+ *   get:
+ *     summary: Check verification status
+ *     tags: [User]
+ *     description: Check the status of a verification session
+ *     parameters:
+ *       - in: path
+ *         name: verificationSessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Verification session ID
+ *     responses:
+ *       200:
+ *         description: Verification status retrieved
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 status:
+ *                   type: string
+ *                   example: submitted
+ *                 sessionId:
+ *                   type: string
+ *                   example: vs_1234567890_abc123
+ *                 submittedAt:
+ *                   type: string
+ *                   format: date-time
+ *       404:
+ *         description: Verification session not found
+ */
+router.get("/verification-status/:verificationSessionId", checkVerificationStatus);
 
 module.exports = router;

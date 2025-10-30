@@ -23,15 +23,13 @@ db();
  * @swagger
  * /auth/webhook:
  *   post:
- *     summary: Stripe Webhook endpoint
+ *     summary: Stripe Payment Webhook endpoint
  *     tags: [Webhook]
  *     description: |
- *       Handles Stripe webhook events including:
+ *       Handles Stripe payment webhook events including:
  *       - `payment_intent.succeeded`
  *       - `payment_intent.payment_failed`
- *       - `account.updated`
- *       - `identity.verification_session.verified`
- *       For Postman testing, signature verification can be skipped.
+ *       Note: Identity verification is now handled through custom endpoints.
  *     requestBody:
  *       required: true
  *       content:
@@ -41,13 +39,12 @@ db();
  *             example:
  *               id: evt_test_webhook
  *               object: event
- *               type: identity.verification_session.verified
+ *               type: payment_intent.succeeded
  *               data:
  *                 object:
- *                   id: vs_1RxCATPfjXlwgFldE4wkKIEw
- *                   identityVerified: true
- *                   metadata:
- *                     email: surafelwondu47@gmail.com
+ *                   id: pi_1234567890
+ *                   amount: 2000
+ *                   status: succeeded
  *     responses:
  *       200:
  *         description: Webhook received successfully

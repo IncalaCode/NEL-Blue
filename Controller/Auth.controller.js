@@ -377,76 +377,8 @@ const handleWebhook = asyncHandler(async (req, res) => {
   }
 
   try {
-    // Handle verification session events
-    if (event.type.includes("identity.verification_session")) {
-      const session = event.data.object;
-      const email = session?.metadata?.email;
-
-      console.log("Verification session:", {
-        type: event.type,
-        sessionId: session.id,
-        status: session.status,
-        email: email,
-      });
-
-      if (!email) {
-        console.warn("⚠️ No email in verification session metadata");
-        return res.status(400).json({
-          success: false,
-          message: "No email in verification session metadata",
-        });
-      }
-
-      const user = await User.findOne({ email });
-      if (!user) {
-        console.warn("⚠️ No user found for email:", email);
-        return res.status(404).json({
-          success: false,
-          message: `No user found for email: ${email}`,
-        });
-      }
-
-      // Prepare update object
-      const update = {
-        stripeVerificationSessionId: session.id,
-        lastWebhookUpdate: new Date(),
-      };
-
-      // Handle different verification statuses
-      if (user.role === "Client") {
-        update.isClientIdentitySubmited = true;
-
-        if (event.type === "identity.verification_session.verified") {
-          update.isClientIdentityVerified = true;
-          console.log(`✅ Client identity verified for ${email}`);
-        } else if (
-          event.type === "identity.verification_session.requires_input" ||
-          event.type === "identity.verification_session.canceled"
-        ) {
-          update.isClientIdentityVerified = false;
-          console.log(`❌ Client verification failed for ${email}`);
-        }
-      }
-
-      if (user.role === "Professional") {
-        update.isProfessionalKycSubmited = true;
-
-        if (event.type === "identity.verification_session.verified") {
-          update.isProfessionalKycVerified = true;
-          console.log(`✅ Professional KYC verified for ${email}`);
-        } else if (
-          event.type === "identity.verification_session.requires_input" ||
-          event.type === "identity.verification_session.canceled"
-        ) {
-          update.isProfessionalKycVerified = false;
-          console.log(`❌ Professional KYC failed for ${email}`);
-        }
-      }
-
-      // Update user in database
-      await User.findByIdAndUpdate(user._id, update);
-      console.log(`✅ Updated verification status for ${user.email}`);
-    } else if (event.type === "payment_intent.succeeded") {
+    // Handle payment events only (removed Stripe Identity verification)
+    if (event.type === "payment_intent.succeeded") {
       const paymentIntent = event.data.object;
       console.log(
         `💰 Payment succeeded: ${paymentIntent.id}, Amount: ${paymentIntent.amount}`
@@ -516,33 +448,71 @@ const handleWebhook = asyncHandler(async (req, res) => {
 
 
 const verifyAccount = asyncHandler(async (req, res) => {
-  console.log("verifying account", req.body)
-  const { email } = req.body;
-  console.log("email", email)
-  // Ensure user exists (should already be created from signup)
   try {
-    const user = await User.findOne({ email });
-    // Create Stripe Identity Verification Session
-    const verificationSession =
-      await stripe.identity.verificationSessions.create({
-        type: "document",
-        metadata: { email: email, source: "mobile_app" },
-        options: {
-          document: {
-            allowed_types: ["driving_license", "id_card", "passport"],
-            require_id_number: true,
-            require_live_capture: true,
-          },
-        },
-        return_url: "https://nelblue.onrender.com/api/auth/stripe-verify",
+    const { email, documentType, documentNumber, documentImages } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required"
       });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Generate verification session ID
+    const verificationSessionId = `vs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    
+    // Store verification data temporarily
+    const verificationData = {
+      email,
+      documentType: documentType || 'id_card',
+      documentNumber: documentNumber || 'pending',
+      documentImages: documentImages || [],
+      sessionId: verificationSessionId,
+      status: 'pending',
+      createdAt: new Date()
+    };
+    
+    // Store in Redis for 24 hours
+    await redis.set(
+      `verification_session:${verificationSessionId}`,
+      JSON.stringify(verificationData),
+      "EX",
+      24 * 60 * 60
+    );
+
+    // Update user verification status
+    const updateData = {
+      verificationSessionId: verificationSessionId,
+      lastVerificationUpdate: new Date()
+    };
+
+    if (user.role === "Client") {
+      updateData.isClientIdentitySubmited = true;
+    } else if (user.role === "Professional") {
+      updateData.isProfessionalKycSubmited = true;
+    }
+
+    await User.findByIdAndUpdate(user._id, updateData);
+
+    console.log(`✅ Custom verification initiated for ${email}`);
 
     res.status(200).json({
       success: true,
-      message: "Proceed with Stripe verification in-app.",
-      verificationSessionId: verificationSession.id,
-      clientSecret: verificationSession.client_secret,
-      verificationUrl: verificationSession.url,
+      message: "Verification initiated successfully. Please submit your documents.",
+      verificationSessionId: verificationSessionId,
+      status: "pending",
+      requiredDocuments: [
+        "Government issued ID (front)",
+        "Government issued ID (back)"
+      ]
     });
   } catch (error) {
     console.error("VerifyAccount Error:", error);
@@ -1430,37 +1400,114 @@ const toggleAvailability = asyncHandler(async (req, res) => {
   }
 });
 
-// Debug endpoint to check user status
-const debugUserStatus = asyncHandler(async (req, res) => {
+// Submit verification documents
+const submitVerificationDocuments = asyncHandler(async (req, res) => {
   try {
-    const { email } = req.params;
-    const user = await User.findOne({ email }).populate('services');
+    const { verificationSessionId, documentType, documentNumber } = req.body;
+    
+    if (!verificationSessionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification session ID is required"
+      });
+    }
+
+    // Get verification session from Redis
+    const sessionData = await redis.get(`verification_session:${verificationSessionId}`);
+    if (!sessionData) {
+      return res.status(404).json({
+        success: false,
+        message: "Verification session not found or expired"
+      });
+    }
+
+    const verificationData = JSON.parse(sessionData);
+    const user = await User.findOne({ email: verificationData.email });
     
     if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
     }
-    
+
+    // Handle file uploads
+    let uploadedFiles = [];
+    if (req.files && req.files.length > 0) {
+      uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
+    }
+
+    // Update verification data
+    verificationData.documentType = documentType || verificationData.documentType;
+    verificationData.documentNumber = documentNumber || verificationData.documentNumber;
+    verificationData.documentImages = uploadedFiles;
+    verificationData.status = 'submitted';
+    verificationData.submittedAt = new Date();
+
+    // Store updated data
+    await redis.set(
+      `verification_session:${verificationSessionId}`,
+      JSON.stringify(verificationData),
+      "EX",
+      24 * 60 * 60
+    );
+
+    // Auto-approve for now (you can add manual review later)
+    const updateData = {
+      identityVerified: true,
+      verificationCompletedAt: new Date()
+    };
+
+    if (user.role === "Client") {
+      updateData.isClientIdentityVerified = true;
+    } else if (user.role === "Professional") {
+      updateData.isProfessionalKycVerified = true;
+    }
+
+    await User.findByIdAndUpdate(user._id, updateData);
+
+    console.log(`✅ Verification completed for ${user.email}`);
+
     res.status(200).json({
       success: true,
-      debug: {
-        id: user._id,
-        email: user.email,
-        role: user.role,
-        availability: user.availabilty,
-        services: user.services,
-        servicesCount: user.services?.length || 0,
-        isProfessionalKycSubmited: user.isProfessionalKycSubmited,
-        isProfessionalKycVerified: user.isProfessionalKycVerified,
-        status: user.status,
-        createdAt: user.createdAt,
-        updatedAt: user.updatedAt
-      }
+      message: "Documents submitted and verified successfully",
+      status: "verified",
+      verificationSessionId
     });
   } catch (error) {
-    console.error("Debug User Status Error:", error);
+    console.error("Submit Verification Documents Error:", error);
     res.status(500).json({ success: false, message: "Something went wrong" });
   }
 });
+
+// Check verification status
+const checkVerificationStatus = asyncHandler(async (req, res) => {
+  try {
+    const { verificationSessionId } = req.params;
+    
+    const sessionData = await redis.get(`verification_session:${verificationSessionId}`);
+    if (!sessionData) {
+      return res.status(404).json({
+        success: false,
+        message: "Verification session not found"
+      });
+    }
+
+    const verificationData = JSON.parse(sessionData);
+    
+    res.status(200).json({
+      success: true,
+      status: verificationData.status,
+      sessionId: verificationSessionId,
+      submittedAt: verificationData.submittedAt || null
+    });
+  } catch (error) {
+    console.error("Check Verification Status Error:", error);
+    res.status(500).json({ success: false, message: "Something went wrong" });
+  }
+});
+
+
 
 
 
@@ -1499,5 +1546,7 @@ module.exports = {
   updateUserRole,
   getAllUsers,
   handleWebhook,
-  adminResendOtp
+  adminResendOtp,
+  submitVerificationDocuments,
+  checkVerificationStatus,
 };
