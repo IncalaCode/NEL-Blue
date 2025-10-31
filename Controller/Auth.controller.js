@@ -54,10 +54,6 @@ const storeCookies = (res, accessToken, refreshToken) => {
 // ========================
 const initiateSignup = asyncHandler(async (req, res) => {
   try {
-    console.log("🚀 InitiateSignup started");
-    console.log("Request body:", JSON.stringify(req.body, null, 2));
-    console.log("Files:", req.files ? req.files.length : 0);
-    
     const {
       firstName,
       lastName,
@@ -77,41 +73,24 @@ const initiateSignup = asyncHandler(async (req, res) => {
       skills,
     } = req.body;
 
-    // Validate required fields
-    if (!firstName || !lastName || !email || !password || !role) {
-      console.log("❌ Missing required fields");
-      return res.status(400).json({ 
-        success: false, 
-        message: "Missing required fields: firstName, lastName, email, password, role" 
-      });
-    }
-
     let uploadedFiles = [];
 
-    console.log("📋 Role:", role);
-    
     // 📌 Certificate upload required only for professionals
-    if (role === "Professional") {
-      console.log("🔍 Checking certificates for Professional role");
-      if (!req.files || req.files.length === 0) {
-        console.log("❌ No certificates uploaded for Professional");
-        return res
-          .status(400)
-          .json({ success: false, message: "Certificates are required for professional users" });
-      }
-      uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
-      console.log("✅ Certificates uploaded:", uploadedFiles.length);
-    }
+    // if (role === "Professional") {
+    //   if (!req.files || req.files.length === 0) {
+    //     return res
+    //       .status(400)
+    //       .json({ success: false, message: "Certificates are required for professional users" });
+    //   }
+    //   uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
+    // }
 
-    console.log("🔍 Checking if user exists:", email);
     // 📌 Check if user already exists
     const userExist = await User.findOne({ email });
     if (userExist) {
-      console.log("❌ User already exists:", email);
       return res.status(400).json({ success: false, message: "User already exists" });
     }
 
-    console.log("📧 Generating OTP and sending email");
     // ✅ Only now generate OTP
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
@@ -121,9 +100,7 @@ const initiateSignup = asyncHandler(async (req, res) => {
       subject: "Your Verification Code",
       text: `Your verification code is: ${verificationCode}`,
     });
-    console.log("✅ Email sent successfully");
 
-    console.log("💾 Saving signup data to Redis");
     // Save signup data temporarily in Redis
     await redis.set(
       `signup_data:${email}`,
@@ -150,13 +127,10 @@ const initiateSignup = asyncHandler(async (req, res) => {
       "EX",
       15 * 60
     );
-    console.log("✅ Data saved to Redis successfully");
 
-    console.log("🎉 InitiateSignup completed successfully");
     res.status(200).json({ success: true, message: "Verification code sent successfully" });
   } catch (error) {
-    console.error("❌ InitiateSignup Error:", error);
-    console.error("Error stack:", error.stack);
+    console.error("InitiateSignup Error:", error);
     res.status(500).json({ 
       success: false, 
       message: "Something went wrong", 
