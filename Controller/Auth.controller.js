@@ -3,7 +3,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../Models/User.model");
 const UserDTO = require("../dto/UserDTO");
 const redis = require("../Middleware/Redis");
-const transporter = require("../config/nodemailer");
+const { sendEmail } = require("../config/brevo");
 const asyncHandler = require("express-async-handler");
 const mongoose = require("mongoose");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -94,12 +94,11 @@ const initiateSignup = asyncHandler(async (req, res) => {
     // ✅ Only now generate OTP
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
-    await transporter.sendMail({
-      to: email,
-      from: process.env.EMAIL_FROM,
-      subject: "Your Verification Code",
-      text: `Your verification code is: ${verificationCode}`,
-    });
+    // await sendEmail({
+    //   to: email,
+    //   subject: "Your Verification Code",
+    //   text: `Your verification code is: ${verificationCode}`,
+    // });
 
     // Save signup data temporarily in Redis
     await redis.set(
@@ -151,9 +150,8 @@ try {
 
   const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
-  await transporter.sendMail({
+  await sendEmail({
     to: email,
-    from: process.env.EMAIL_FROM,
     subject: "Your Verification Code",
     text: `Your verification code is: ${verificationCode}`,
   });
@@ -250,9 +248,8 @@ const adminResendOtp = asyncHandler(async (req, res) => {
     );
 
     // Send new OTP
-    await transporter.sendMail({
+    await sendEmail({
       to: email,
-      from: process.env.EMAIL_FROM,
       subject: "Your New Verification Code",
       text: `Your new verification code is: ${newVerificationCode}`,
     });
@@ -611,13 +608,11 @@ const resendOtp = asyncHandler(async (req, res) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
     // Send the verification code to the user's email
-    const mailOptions = {
+    await sendEmail({
       to: email,
-      from: "Worku Furniture",
       subject: "Verification Code",
       text: `Your verification code is: ${verificationCode}`,
-    };
-    await transporter.sendMail(mailOptions);
+    });
 
     // Save the verification code in Redis
     await redis.set(
@@ -677,14 +672,11 @@ const login = asyncHandler(async (req, res) => {
     if (user.twoFactorEnabled) {
       const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
-      const mailOptions = {
+      await sendEmail({
         to: email,
-        from: process.env.MAIL_FROM || "no-reply@example.com",
         subject: "Two-Factor Authentication Code",
         text: `Your verification code is: ${verificationCode}`,
-      };
-
-      await transporter.sendMail(mailOptions);
+      });
 
       // store OTP in Redis with 5 min expiry
       await redis.set(
@@ -935,14 +927,11 @@ const requestPasswordReset = asyncHandler(async (req, res) => {
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
     // Send the verification code to the user's email
-    const mailOptions = {
+    await sendEmail({
       to: email,
-      from: "your-email@example.com",
       subject: "Password Reset OTP",
       text: `Your password reset OTP is: ${verificationCode}`,
-    };
-
-    await transporter.sendMail(mailOptions);
+    });
 
     // Save the verification code in redis with expiration (5 minutes)
     await redis.set(`password_reset:${email}`, verificationCode, "EX", 5 * 60);

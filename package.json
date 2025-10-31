@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@getbrevo/brevo": "^3.0.1",
     "@squoosh/lib": "^0.3.1",
     "bcrypt": "^6.0.0",
     "body-parser": "^2.2.0",
