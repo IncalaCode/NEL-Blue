@@ -4,6 +4,7 @@ const User = require("../Models/User.model");
 const UserDTO = require("../dto/UserDTO");
 const redis = require("../Middleware/Redis");
 const { sendEmail } = require("../config/brevo");
+const { loadTemplate, renderTemplate } = require("../utils/emailTemplates");
 const asyncHandler = require("express-async-handler");
 const mongoose = require("mongoose");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
@@ -94,10 +95,14 @@ const initiateSignup = asyncHandler(async (req, res) => {
     // ✅ Only now generate OTP
     const verificationCode = Math.floor(100000 + Math.random() * 900000);
 
+    const template = loadTemplate('verification-code');
+    const htmlContent = renderTemplate(template, { verificationCode });
+    
     // await sendEmail({
     //   to: email,
-    //   subject: "Your Verification Code",
+    //   subject: "Your Verification Code - NEL Blue",
     //   text: `Your verification code is: ${verificationCode}`,
+    //   html: htmlContent
     // });
 
     // Save signup data temporarily in Redis
