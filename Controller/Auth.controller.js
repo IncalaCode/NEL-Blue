@@ -53,67 +53,20 @@ const storeCookies = (res, accessToken, refreshToken) => {
 // INITIATE SIGNUP
 // ========================
 const initiateSignup = asyncHandler(async (req, res) => {
-  const {
-    firstName,
-    lastName,
-    country,
-    email,
-    password,
-    phoneNumber,
-    role,
-    address,
-    state,
-    zipCode,
-    city,
-    yearsOfExperience,
-    hourlyRate,
-    services,
-    bio,
-    skills,
-  } = req.body;
-
-  let uploadedFiles = [];
-
-  // Ensure role is normalized
- 
-  // 📌 Certificate upload required only for professionals
-  if (role === "Professional") {
-    if (!req.files || req.files.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Certificates are required for professional users" });
-    }
-    uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
-  }
-
-  // 📌 Check if user already exists
-  const userExist = await User.findOne({ email });
-  if (userExist) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-
-  // ✅ Only now generate OTP
-  const verificationCode = Math.floor(100000 + Math.random() * 900000);
-
-  await transporter.sendMail({
-    to: email,
-    from: process.env.EMAIL_FROM,
-    subject: "Your Verification Code",
-    text: `Your verification code is: ${verificationCode}`,
-  });
-
-  // Save signup data temporarily in Redis
-  await redis.set(
-    `signup_data:${email}`,
-    JSON.stringify({
+  try {
+    console.log("🚀 InitiateSignup started");
+    console.log("Request body:", JSON.stringify(req.body, null, 2));
+    console.log("Files:", req.files ? req.files.length : 0);
+    
+    const {
       firstName,
       lastName,
+      country,
       email,
       password,
       phoneNumber,
       role,
       address,
-      country,
       state,
       zipCode,
       city,
@@ -122,14 +75,94 @@ const initiateSignup = asyncHandler(async (req, res) => {
       services,
       bio,
       skills,
-      certificates: uploadedFiles,
-      verificationCode,
-    }),
-    "EX",
-    15 * 60
-  );
+    } = req.body;
 
-  res.status(200).json({ message: "Verification code sent successfully" });
+    // Validate required fields
+    if (!firstName || !lastName || !email || !password || !role) {
+      console.log("❌ Missing required fields");
+      return res.status(400).json({ 
+        success: false, 
+        message: "Missing required fields: firstName, lastName, email, password, role" 
+      });
+    }
+
+    let uploadedFiles = [];
+
+    console.log("📋 Role:", role);
+    
+    // 📌 Certificate upload required only for professionals
+    if (role === "Professional") {
+      console.log("🔍 Checking certificates for Professional role");
+      if (!req.files || req.files.length === 0) {
+        console.log("❌ No certificates uploaded for Professional");
+        return res
+          .status(400)
+          .json({ success: false, message: "Certificates are required for professional users" });
+      }
+      uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
+      console.log("✅ Certificates uploaded:", uploadedFiles.length);
+    }
+
+    console.log("🔍 Checking if user exists:", email);
+    // 📌 Check if user already exists
+    const userExist = await User.findOne({ email });
+    if (userExist) {
+      console.log("❌ User already exists:", email);
+      return res.status(400).json({ success: false, message: "User already exists" });
+    }
+
+    console.log("📧 Generating OTP and sending email");
+    // ✅ Only now generate OTP
+    const verificationCode = Math.floor(100000 + Math.random() * 900000);
+
+    await transporter.sendMail({
+      to: email,
+      from: process.env.EMAIL_FROM,
+      subject: "Your Verification Code",
+      text: `Your verification code is: ${verificationCode}`,
+    });
+    console.log("✅ Email sent successfully");
+
+    console.log("💾 Saving signup data to Redis");
+    // Save signup data temporarily in Redis
+    await redis.set(
+      `signup_data:${email}`,
+      JSON.stringify({
+        firstName,
+        lastName,
+        email,
+        password,
+        phoneNumber,
+        role,
+        address,
+        country,
+        state,
+        zipCode,
+        city,
+        yearsOfExperience,
+        hourlyRate,
+        services,
+        bio,
+        skills,
+        certificates: uploadedFiles,
+        verificationCode,
+      }),
+      "EX",
+      15 * 60
+    );
+    console.log("✅ Data saved to Redis successfully");
+
+    console.log("🎉 InitiateSignup completed successfully");
+    res.status(200).json({ success: true, message: "Verification code sent successfully" });
+  } catch (error) {
+    console.error("❌ InitiateSignup Error:", error);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({ 
+      success: false, 
+      message: "Something went wrong", 
+      error: error.message 
+    });
+  }
 });
 
 
