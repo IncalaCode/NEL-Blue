@@ -98,12 +98,12 @@ const initiateSignup = asyncHandler(async (req, res) => {
     const template = loadTemplate('verification-code');
     const htmlContent = renderTemplate(template, { verificationCode });
     
-    await sendEmail({
-      to: email,
-      subject: "Your Verification Code - NEL Blue",
-      text: `Your verification code is: ${verificationCode}`,
-      html: htmlContent
-    });
+    // await sendEmail({
+    //   to: email,
+    //   subject: "Your Verification Code - NEL Blue",
+    //   text: `Your verification code is: ${verificationCode}`,
+    //   html: htmlContent
+    // });
 
     // Save signup data temporarily in Redis
     await redis.set(
