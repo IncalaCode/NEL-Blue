@@ -77,14 +77,14 @@ const initiateSignup = asyncHandler(async (req, res) => {
     let uploadedFiles = [];
 
     // 📌 Certificate upload required only for professionals
-    // if (role === "Professional") {
-    //   if (!req.files || req.files.length === 0) {
-    //     return res
-    //       .status(400)
-    //       .json({ success: false, message: "Certificates are required for professional users" });
-    //   }
-    //   uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
-    // }
+    if (role === "Professional") {
+      if (!req.files || req.files.length === 0) {
+        return res
+          .status(400)
+          .json({ success: false, message: "Certificates are required for professional users" });
+      }
+      uploadedFiles = req.files.map((file) => file.path.replace(/\\/g, "/"));
+    }
 
     // 📌 Check if user already exists
     const userExist = await User.findOne({ email });
@@ -98,12 +98,12 @@ const initiateSignup = asyncHandler(async (req, res) => {
     const template = loadTemplate('verification-code');
     const htmlContent = renderTemplate(template, { verificationCode });
     
-    // await sendEmail({
-    //   to: email,
-    //   subject: "Your Verification Code - NEL Blue",
-    //   text: `Your verification code is: ${verificationCode}`,
-    //   html: htmlContent
-    // });
+    await sendEmail({
+      to: email,
+      subject: "Your Verification Code - NEL Blue",
+      text: `Your verification code is: ${verificationCode}`,
+      html: htmlContent
+    });
 
     // Save signup data temporarily in Redis
     await redis.set(
