@@ -5,7 +5,9 @@
   "scripts": {
     "test": "jest --detectOpenHandles",
     "start": " node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "clear-redis": "node utils/clearRedis.js",
+    "clear-redis-email": "node utils/clearSpecificRedis.js"
   },
   "keywords": [],
   "author": "",

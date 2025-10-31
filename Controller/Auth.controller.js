@@ -132,7 +132,7 @@ const initiateSignup = asyncHandler(async (req, res) => {
       15 * 60
     );
 
-    res.status(200).json({ success: true, message: "Verification code sent successfully" , code : verificationCode });
+    res.status(200).json({ success: true, message: "Verification code sent successfully" });
   } catch (error) {
     console.error("InitiateSignup Error:", error);
     res.status(500).json({ 
