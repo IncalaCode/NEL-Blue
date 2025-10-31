@@ -10,7 +10,8 @@ process.env.refreshTokenSecret = 'test_refresh_secret';
 // Mock dependencies
 jest.mock('../Models/User.model');
 jest.mock('../Middleware/Redis');
-jest.mock('../config/nodemailer');
+jest.mock('../config/brevo');
+jest.mock('../utils/emailTemplates');
 jest.mock('stripe', () => {
   return jest.fn(() => ({
     identity: {
